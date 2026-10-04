@@ -14,6 +14,7 @@ import {
   ScanLine,
 } from 'lucide-react';
 import { MultiFormatReader, BarcodeFormat, DecodeHintType, HTMLCanvasElementLuminanceSource, HybridBinarizer, BinaryBitmap } from '@zxing/library';
+import { drawToCanvas } from '../utils/documentBarcodeReader';
 import { VehicleEntryData } from '../types';
 import { parseLicenseDiscPayload, SAMPLE_LICENSE_DISCS } from '../utils/discParser';
 
@@ -293,16 +294,15 @@ export const VehicleScannerModal: React.FC<VehicleScannerModalProps> = ({
         }
 
         // Option 2: Fallback to ZXing on canvas
+        // Keep the aspect ratio (squashing distorts barcodes) and cap the long side for speed.
         const canvas = canvasRef.current || document.createElement('canvas');
-        canvas.width = Math.min(video.videoWidth, 800);
-        canvas.height = Math.min(video.videoHeight, 600);
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const ctx = drawToCanvas(canvas, video, video.videoWidth, video.videoHeight, 1280);
         if (ctx) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           try {
             const luminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
             const binaryBitmap = new BinaryBitmap(new HybridBinarizer(luminanceSource));
-            const result = reader.decode(binaryBitmap);
+            // decodeWithState keeps the format hints; decode() would reset them to "all formats".
+            const result = reader.decodeWithState(binaryBitmap);
 
             if (result && result.getText() && active) {
               const rawText = result.getText();
