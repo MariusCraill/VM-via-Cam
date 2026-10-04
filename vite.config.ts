@@ -14,9 +14,9 @@ export default defineConfig(() => {
         includeAssets: ['icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
         manifest: {
           id: '/',
-          name: 'Vehicle & VIN Scanner',
-          short_name: 'Vehicle Scanner',
-          description: 'Vehicle license disk QR code and barcode scanner with camera detection, instant expiry verification, and complete vehicle results display.',
+          name: 'GatePass Visitor Management',
+          short_name: 'GatePass',
+          description: 'Gate visitor management: scan licence discs, driver\'s licences and ID cards, and log visitor entries.',
           theme_color: '#0f172a',
           background_color: '#0f172a',
           display: 'standalone',

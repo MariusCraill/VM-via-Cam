@@ -207,19 +207,19 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
   return (
     <div className="space-y-6">
       {/* Top Banner Notice */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 flex flex-wrap items-center justify-between gap-4 shadow-xl">
+      <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 flex flex-wrap items-center justify-between gap-3 sm:gap-4 shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+          <div className="hidden sm:block p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-white tracking-wide">Complex Gate Check-In</h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <span className="hidden sm:inline px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 ACTIVE GATE
               </span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="hidden sm:block text-xs text-slate-400">
               Scan vehicle QR code & driver's license to log authorized entry into database
             </p>
           </div>
@@ -687,7 +687,8 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
             </label>
             <div className="relative">
               <input
-                type="text"
+                type="tel"
+                inputMode="tel"
                 value={residentPhone}
                 onChange={(e) => setResidentPhone(e.target.value)}
                 placeholder="+27 82 555 3821"
@@ -778,9 +779,9 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
         </div>
       )}
 
-      {/* Bottom Master Save Button */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl">
-        <div className="text-xs text-slate-400 flex items-center gap-2">
+      {/* Bottom Master Save Button (sticks above the bottom nav on phones) */}
+      <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] sm:static z-30 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4 p-3 sm:p-4 rounded-3xl bg-slate-900/95 backdrop-blur-md border border-slate-700 sm:border-slate-800 shadow-2xl">
+        <div className="text-xs text-slate-400 flex items-center gap-2 min-w-0 max-w-full truncate">
           <div className={`w-2.5 h-2.5 rounded-full ${vehicle && driver ? 'bg-emerald-400' : 'bg-amber-400'}`} />
           <span>
             Ready to log: <strong className="text-white">{vehicle ? vehicle.licenceNumber : 'Vehicle pending'}</strong> + <strong className="text-white">{driver ? driver.fullName : 'Driver pending'}</strong>
@@ -791,7 +792,7 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
           <button
             type="button"
             onClick={handleReset}
-            className="py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+            className="h-12 sm:h-auto py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
           >
             Clear All
           </button>
@@ -800,7 +801,7 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
             type="button"
             onClick={handleRecordEntry}
             disabled={isSaving}
-            className="flex-1 sm:flex-initial py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-950 disabled:opacity-50"
+            className="flex-1 sm:flex-initial h-12 sm:h-auto py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm flex items-center justify-center gap-2.5 shadow-xl shadow-emerald-950 disabled:opacity-50"
           >
             {isSaving ? (
               <span className="inline-flex items-center gap-2">
@@ -810,8 +811,9 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                <span>RECORD ENTRY & SAVE TO DB</span>
-                <ArrowRight className="w-4 h-4" />
+                <span className="sm:hidden">RECORD ENTRY</span>
+                <span className="hidden sm:inline">RECORD ENTRY & SAVE TO DB</span>
+                <ArrowRight className="hidden sm:block w-4 h-4" />
               </>
             )}
           </button>
