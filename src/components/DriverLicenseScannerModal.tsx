@@ -14,13 +14,22 @@ import {
   CreditCard,
   Car,
 } from 'lucide-react';
-import { MultiFormatReader, BarcodeFormat, DecodeHintType, HTMLCanvasElementLuminanceSource, HybridBinarizer, BinaryBitmap } from '@zxing/library';
 import { DriverLicenseData } from '../types';
 import {
   SAMPLE_DRIVER_LICENSES,
   SAMPLE_ID_CARDS,
-  parseDriverLicenseRawText,
+  interpretDocumentBarcode,
+  looksBinary,
 } from '../utils/driversLicenseParser';
+import {
+  decodeDocumentBarcode,
+  decodeDocumentBarcodeFromImage,
+  decodePdf417,
+  drawToCanvas,
+} from '../utils/documentBarcodeReader';
+
+const BARCODE_UNREADABLE_HINT =
+  "Licence barcode found but not fully read. Hold the card closer and steady, avoid glare, or tap Capture & Read.";
 
 interface DriverLicenseScannerModalProps {
   isOpen: boolean;
@@ -103,8 +112,9 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: { ideal: facingMode },
-          width: { ideal: 1280, max: 1920 },
-          height: { ideal: 720, max: 1080 },
+          // The licence PDF417 is dense; 1080p gives ZXing enough pixels per module.
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
         },
         audio: false,
       };
@@ -122,10 +132,15 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
         };
       }
 
-      // Check torch
+      // Check torch, and request continuous autofocus where supported
       const videoTrack = mediaStream.getVideoTracks()[0];
       const capabilities = videoTrack?.getCapabilities?.() as any;
       setHasTorch(!!capabilities?.torch);
+      if (capabilities?.focusMode?.includes?.('continuous')) {
+        videoTrack
+          .applyConstraints({ advanced: [{ focusMode: 'continuous' } as any] })
+          .catch(() => {});
+      }
     } catch (err: any) {
       console.warn('Driver/ID camera start error:', err);
       setHasCameraPermission(false);
@@ -247,35 +262,37 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
     }
   };
 
-  // Barcode decoding loop using Native BarcodeDetector or ZXing
+  // Barcode decoding loop: native BarcodeDetector for speed/location, ZXing for exact bytes
   useEffect(() => {
     if (!isOpen || isAiProcessing) return;
 
-    let isNativeSupported = false;
     let nativeDetector: any = null;
-
     if (typeof (window as any).BarcodeDetector !== 'undefined') {
       try {
         nativeDetector = new (window as any).BarcodeDetector({
-          formats: ['pdf417', 'qr_code', 'code_128', 'data_matrix'],
+          formats: ['pdf417', 'qr_code', 'code_128', 'code_39', 'data_matrix'],
         });
-        isNativeSupported = true;
       } catch {
-        isNativeSupported = false;
+        nativeDetector = null;
       }
     }
 
-    const hints = new Map();
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-      BarcodeFormat.PDF_417,
-      BarcodeFormat.QR_CODE,
-      BarcodeFormat.DATA_MATRIX,
-      BarcodeFormat.CODE_128,
-    ]);
-    const reader = new MultiFormatReader();
-    reader.setHints(hints);
-
     let active = true;
+    let frameCount = 0;
+    const workCanvas = document.createElement('canvas');
+
+    const accept = (raw: string): boolean => {
+      const result = interpretDocumentBarcode(raw, scanMode);
+      if (result.status === 'unreadable') {
+        setErrorMessage(BARCODE_UNREADABLE_HINT);
+        return false;
+      }
+      active = false;
+      stopCamera();
+      onDriverDetected(result.data);
+      onClose();
+      return true;
+    };
 
     const scanFrame = async () => {
       if (!active || isDecodingRef.current) return;
@@ -289,60 +306,54 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
       }
 
       isDecodingRef.current = true;
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
 
       try {
-        // Option 1: Hardware-accelerated BarcodeDetector
-        if (isNativeSupported && nativeDetector) {
+        // Option 1: native BarcodeDetector. Text payloads (Smart ID, ID book) are used directly.
+        // Its rawValue is UTF-8 decoded, so a binary licence PDF417 is re-read by ZXing from
+        // a full-resolution crop around the detected symbol.
+        if (nativeDetector) {
           try {
-            const barcodes = await nativeDetector.detect(video);
-            if (barcodes && barcodes.length > 0 && active) {
-              const detected = barcodes[0];
-              const rawText = detected.rawValue || detected.rawValueString || '';
-              if (rawText) {
-                const parsed = parseDriverLicenseRawText(rawText, scanMode);
-                active = false;
-                stopCamera();
-                onDriverDetected(parsed);
-                onClose();
-                return;
+            const barcodes: any[] = await nativeDetector.detect(video);
+            for (const detected of barcodes) {
+              if (!active) return;
+              const rawText: string = detected.rawValue || '';
+              if (rawText && !looksBinary(rawText)) {
+                if (accept(rawText)) return;
+                continue;
               }
+              const box = detected.boundingBox;
+              if (box && box.width > 0) {
+                const mx = box.width * 0.15;
+                const my = box.height * 0.3;
+                const crop = { x: box.x - mx, y: box.y - my, width: box.width + 2 * mx, height: box.height + 2 * my };
+                if (drawToCanvas(workCanvas, video, vw, vh, 1600, crop)) {
+                  const raw = decodePdf417(workCanvas);
+                  if (raw && accept(raw)) return;
+                }
+              }
+              setErrorMessage(BARCODE_UNREADABLE_HINT);
             }
           } catch {
-            // fallback to ZXing
+            // fall through to ZXing
           }
         }
 
-        // Option 2: ZXing fallback on canvas
-        const canvas = canvasRef.current || document.createElement('canvas');
-        canvas.width = Math.min(video.videoWidth, 800);
-        canvas.height = Math.min(video.videoHeight, 600);
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          try {
-            const luminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
-            const binaryBitmap = new BinaryBitmap(new HybridBinarizer(luminanceSource));
-            const result = reader.decode(binaryBitmap);
-
-            if (result && result.getText() && active) {
-              const rawText = result.getText();
-              const parsed = parseDriverLicenseRawText(rawText, scanMode);
-              active = false;
-              stopCamera();
-              onDriverDetected(parsed);
-              onClose();
-              return;
-            }
-          } catch {
-            // No barcode in frame, keep scanning
-          }
+        // Option 2: ZXing on the full frame (no aspect distortion). Alternate between full
+        // resolution (needed for the dense licence barcode) and a lighter downscale.
+        if (!active) return;
+        const maxSide = frameCount++ % 2 === 0 ? 1920 : 1280;
+        if (drawToCanvas(workCanvas, video, vw, vh, maxSide)) {
+          const raw = decodeDocumentBarcode(workCanvas);
+          if (raw && active) accept(raw);
         }
       } catch (err) {
         console.warn('Scan frame error:', err);
       } finally {
         isDecodingRef.current = false;
         if (active) {
-          scanTimerRef.current = window.setTimeout(scanFrame, 280);
+          scanTimerRef.current = window.setTimeout(scanFrame, 200);
         }
       }
     };
@@ -363,19 +374,42 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
   const handleSnapAi = () => {
     const frame = captureFrame();
     if (frame) {
-      processImageWithAi(frame);
+      processStillImage(frame);
     }
+  };
+
+  // Read a still image: try the barcode locally first (exact data, works offline), then Gemini OCR.
+  const processStillImage = async (base64Image: string) => {
+    setIsAiProcessing(true);
+    setErrorMessage(null);
+    try {
+      const raw = await decodeDocumentBarcodeFromImage(base64Image);
+      if (raw) {
+        const result = interpretDocumentBarcode(raw, scanMode);
+        if (result.status === 'ok') {
+          stopCamera();
+          onDriverDetected(result.data);
+          onClose();
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Still image barcode decode failed:', err);
+    } finally {
+      setIsAiProcessing(false);
+    }
+    await processImageWithAi(base64Image);
   };
 
   // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = () => {
-      const base64 = reader.result as string;
-      processImageWithAi(base64);
+      processStillImage(reader.result as string);
     };
     reader.readAsDataURL(file);
   };

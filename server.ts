@@ -436,7 +436,9 @@ Carefully read and extract the person's identity information:
 
 Return valid JSON ONLY with these keys. If any field is unreadable, set it to null.`
         : `You are an expert automotive and driver's licence OCR vision specialist.
-Task: Inspect this photo of a driver's license (South African driving licence card front or reverse barcode, or international driver license).
+Task: Inspect this photo of a driver's license (South African driving licence card, or international driver license).
+Read the PRINTED text on the card. Note: the PDF417 barcode on the back of a South African licence card is encrypted and cannot be read visually, so ignore it; if only the back is visible, extract what is printed there and leave the rest null.
+South African card layout hints: surname and initials at the top, ID number (13 digits), licence number (12 characters, e.g. "1234567890AB"), "Valid" from - to dates, codes (A1, A, B, EB, C1, C, EC1, EC), and a date for each code.
 Carefully read and extract the driver information:
 1. "fullName": Full name of the driver (e.g. "Sipho Nhlanhla Dlamini", "Amanda van der Merwe")
 2. "surname": Driver surname / family name
