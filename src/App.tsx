@@ -195,11 +195,11 @@ export default function App() {
   const onSiteCount = visitors.filter((v) => v.status === 'ON_SITE' || v.status === 'FLAGGED').length;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white pb-12">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-12">
       <OfflineIndicator />
 
       {/* TOP APPLICATION HEADER */}
-      <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3">
+      <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           {/* COMPLEX BRANDING */}
           <div className="flex items-center gap-3 min-w-0">
@@ -236,7 +236,7 @@ export default function App() {
             {/* Live On-Site Visitors Button */}
             <button
               onClick={() => setActiveTab('onsite')}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`hidden sm:flex px-3 py-1.5 rounded-xl border text-xs font-bold transition items-center gap-1.5 ${
                 activeTab === 'onsite'
                   ? 'bg-emerald-600 text-white border-emerald-500'
                   : 'bg-slate-900 border-slate-700 text-slate-200 hover:border-slate-600'
@@ -252,7 +252,7 @@ export default function App() {
             {/* Resident Directory Modal Trigger */}
             <button
               onClick={() => setIsDirectoryOpen(true)}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white"
+              className="touch-target flex items-center justify-center p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white"
               title="Complex Resident Directory"
             >
               <Building2 className="w-4 h-4" />
@@ -261,7 +261,7 @@ export default function App() {
             {/* Admin settings */}
             <button
               onClick={() => setIsAdminOpen(true)}
-              className={`p-2 rounded-xl border ${
+              className={`touch-target flex items-center justify-center p-2 rounded-xl border ${
                 isAdmin
                   ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25'
                   : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
@@ -275,7 +275,7 @@ export default function App() {
             <button
               onClick={fetchDatabaseData}
               disabled={isLoading}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white disabled:opacity-50"
+              className="touch-target flex items-center justify-center p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white disabled:opacity-50"
               title="Sync Database"
             >
               <RefreshCw className="w-4 h-4" />
@@ -284,8 +284,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* NAVIGATION TABS */}
-      <div className="bg-slate-950 border-b border-slate-800/80 px-4 sm:px-6 pt-2">
+      {/* NAVIGATION TABS (tablet / desktop; phones use the bottom bar) */}
+      <div className="hidden sm:block bg-slate-950 border-b border-slate-800/80 px-4 sm:px-6 pt-2">
         <div className="max-w-5xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
           <button
             onClick={() => setActiveTab('checkin')}
@@ -398,6 +398,43 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* MOBILE BOTTOM NAVIGATION */}
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 pb-[env(safe-area-inset-bottom)]">
+        <div className="grid grid-cols-4">
+          {(
+            [
+              ['checkin', 'Check-In', PlusCircle],
+              ['onsite', 'On-Site', Users],
+              ['audit', 'History', History],
+              ['tool', 'Vehicle', Disc],
+            ] as const
+          ).map(([tab, label, Icon]) => (
+            <button
+              key={tab}
+              onClick={() => {
+                setActiveTab(tab);
+                window.scrollTo({ top: 0 });
+                if (tab === 'onsite' || tab === 'audit') fetchDatabaseData();
+              }}
+              className={`relative flex flex-col items-center justify-center gap-1 h-16 text-[11px] font-semibold ${
+                activeTab === tab ? 'text-emerald-400' : 'text-slate-400 active:text-slate-200'
+              }`}
+            >
+              {activeTab === tab && <span className="absolute top-0 inset-x-6 h-0.5 rounded-full bg-emerald-400" />}
+              <span className="relative">
+                <Icon className="w-5 h-5" />
+                {tab === 'onsite' && onSiteCount > 0 && (
+                  <span className="absolute -top-1.5 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-400 text-slate-950 text-[10px] font-black flex items-center justify-center">
+                    {onSiteCount}
+                  </span>
+                )}
+              </span>
+              {label}
+            </button>
+          ))}
+        </div>
+      </nav>
 
       {/* PWA INSTALL BANNER */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-6">

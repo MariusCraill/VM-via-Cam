@@ -5,3 +5,53 @@
   animation: none !important;
   transition: none !important;
 }
+
+/* Hide scrollbars on horizontally scrolling chip/tab rows */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Modals: never clip tall content (centre only when it fits) */
+.modal-backdrop {
+  overflow-y: auto;
+  align-items: safe center;
+}
+
+/* Phones: modals become full-screen sheets that respect the notch / home bar */
+@media (max-width: 639px) {
+  .modal-backdrop {
+    padding: 0 !important;
+    align-items: stretch !important;
+  }
+  .modal-sheet {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    border-width: 0 !important;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    overflow-y: auto !important;
+  }
+}
+
+/* Larger touch targets for icon-only buttons on touch screens */
+@media (pointer: coarse) {
+  .touch-target,
+  button:has(> svg:only-child) {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}

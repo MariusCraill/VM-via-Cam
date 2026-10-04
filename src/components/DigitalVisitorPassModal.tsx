@@ -46,8 +46,8 @@ export const DigitalVisitorPassModal: React.FC<DigitalVisitorPassModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="modal-sheet relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
         {/* Header Ribbon */}
         <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 px-6 py-4 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -117,7 +117,7 @@ export const DigitalVisitorPassModal: React.FC<DigitalVisitorPassModalProps> = (
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] uppercase font-bold text-slate-400">Registered Vehicle</div>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="px-2 py-0.5 rounded font-mono font-black text-xs bg-amber-400 text-slate-950">
+                  <span className="shrink-0 whitespace-nowrap px-2 py-0.5 rounded font-mono font-black text-xs bg-amber-400 text-slate-950">
                     {visitor.vehicle.licenceNumber}
                   </span>
                   <span className="font-semibold text-slate-200 truncate">

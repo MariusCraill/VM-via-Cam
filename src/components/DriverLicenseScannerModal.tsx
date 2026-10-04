@@ -417,8 +417,8 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md">
+      <div className="modal-sheet relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Top Header */}
         <div className="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950">
           <div className="flex items-center gap-2.5">
@@ -641,14 +641,13 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
           </div>
 
           {/* 1-Click Fast Test Drivers / ID Cards */}
-          <div className="pt-2 border-t border-slate-800/80">
-            <div className="text-[11px] font-semibold text-slate-400 mb-2 flex items-center justify-between">
-              <span>
-                Quick Test Samples ({scanMode === 'id_card' ? 'Smart ID Cards' : "Driver's Licenses"}):
-              </span>
-              <span className="text-[10px] text-blue-400">1-click test</span>
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
+          {/* Collapsed by default so the camera gets the space */}
+          <details className="group pt-2 border-t border-slate-800/80">
+            <summary className="cursor-pointer select-none list-none py-1.5 text-xs font-semibold text-slate-400 flex items-center justify-between">
+              <span>Test samples ({scanMode === 'id_card' ? 'Smart ID Cards' : "Driver's Licenses"})</span>
+              <span className="text-slate-500 group-open:rotate-180">▾</span>
+            </summary>
+            <div className="mt-1.5 grid grid-cols-2 gap-1.5">
               {(scanMode === 'id_card' ? SAMPLE_ID_CARDS : SAMPLE_DRIVER_LICENSES).map((s, idx) => (
                 <button
                   key={idx}
@@ -670,7 +669,7 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
                 </button>
               ))}
             </div>
-          </div>
+          </details>
         </div>
       </div>
     </div>

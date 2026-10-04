@@ -374,8 +374,8 @@ export const VehicleScannerModal: React.FC<VehicleScannerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md">
+      <div className="modal-sheet relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Top Header */}
         <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
           <div className="flex items-center gap-2.5">
@@ -494,12 +494,13 @@ export const VehicleScannerModal: React.FC<VehicleScannerModalProps> = ({
           </div>
 
           {/* 1-Click Fast Test Vehicles */}
-          <div className="pt-2 border-t border-slate-800/80">
-            <div className="text-[11px] font-semibold text-slate-400 mb-2 flex items-center justify-between">
-              <span>Quick Test Vehicles (No disc handy?):</span>
-              <span className="text-[10px] text-emerald-400">1-click test</span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+          {/* Collapsed by default so the camera gets the space */}
+          <details className="group pt-2 border-t border-slate-800/80">
+            <summary className="cursor-pointer select-none list-none py-1.5 text-xs font-semibold text-slate-400 flex items-center justify-between">
+              <span>Test vehicles (no disc handy?)</span>
+              <span className="text-slate-500 group-open:rotate-180">▾</span>
+            </summary>
+            <div className="mt-1.5 grid grid-cols-2 sm:grid-cols-3 gap-1.5">
               {SAMPLE_LICENSE_DISCS.slice(0, 3).map((s, idx) => (
                 <button
                   key={idx}
@@ -530,7 +531,7 @@ export const VehicleScannerModal: React.FC<VehicleScannerModalProps> = ({
                 </button>
               ))}
             </div>
-          </div>
+          </details>
         </div>
       </div>
     </div>
