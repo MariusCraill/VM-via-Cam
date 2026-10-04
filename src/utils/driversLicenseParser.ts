@@ -1,4 +1,5 @@
 import { DriverLicenseData } from '../types';
+import { decodeSADriversLicence, type SADriversLicence } from '../lib/saDriversLicence';
 
 export interface SampleDriverLicense {
   label: string;
@@ -278,4 +279,116 @@ export function parseDriverLicenseRawText(
     format: 'BARCODE_PDF417',
     confidence: 0.88,
   };
+}
+
+/** "YYYY/MM/DD" (licence barcode) -> "YYYY-MM-DD". */
+function slashDateToIso(d: string): string | undefined {
+  return d ? d.replace(/\//g, '-') : undefined;
+}
+
+/** Maps a decrypted SA driver's licence barcode into the app's driver model. */
+export function driverDataFromSALicence(dl: SADriversLicence): DriverLicenseData {
+  const parsedId = parseSouthAfricanIdNumber(dl.idNumber);
+  const initials = dl.initials.split('').join(' ').replace(/\s+/g, ' ').trim();
+  return {
+    fullName: `${initials} ${titleCase(dl.surname)}`.trim(),
+    initials,
+    surname: titleCase(dl.surname),
+    idNumber: dl.idNumber,
+    licenseNumber: dl.licenceNumber,
+    licenseCodes: dl.vehicleCodes.length ? `Code ${dl.vehicleCodes.join(', ')}` : undefined,
+    licenseExpiryDate: slashDateToIso(dl.validTo),
+    firstIssueDate: slashDateToIso(dl.licenceCodeIssueDates[0] || dl.validFrom),
+    gender: dl.gender === 'male' ? 'M' : 'F',
+    dateOfBirth: slashDateToIso(dl.birthDate) || parsedId.dateOfBirth,
+    countryOfIssue: dl.licenceCountryOfIssue === 'ZA' ? 'South Africa' : dl.licenceCountryOfIssue,
+    citizenship: parsedId.isValid
+      ? parsedId.isCitizen
+        ? 'South African Citizen (RSA)'
+        : 'Permanent Resident'
+      : undefined,
+    documentType: 'drivers_license',
+    format: 'BARCODE_PDF417',
+    confidence: 1,
+  };
+}
+
+function titleCase(s: string): string {
+  return s.toLowerCase().replace(/(^|[\s'-])\p{L}/gu, (m) => m.toUpperCase());
+}
+
+/**
+ * Smart ID card (reverse PDF417) payload, pipe-delimited:
+ * SURNAME|NAMES|SEX|NATIONALITY|ID NUMBER|DOB|COUNTRY OF BIRTH|STATUS|ISSUE DATE|...
+ */
+export function parseSmartIdBarcode(raw: string): DriverLicenseData | null {
+  const parts = raw.split('|').map((p) => p.trim());
+  if (parts.length < 6) return null;
+  const idIndex = parts.findIndex((p) => /^\d{13}$/.test(p));
+  if (idIndex < 0) return null;
+
+  const idNumber = parts[idIndex];
+  const parsedId = parseSouthAfricanIdNumber(idNumber);
+  const surname = titleCase(parts[0] || '');
+  const names = titleCase(parts[1] || '');
+  const sex = (parts[2] || '').toUpperCase();
+  const status = parts[7] || '';
+
+  return {
+    fullName: `${names} ${surname}`.trim() || 'ID Card Holder',
+    initials: names
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join(' '),
+    surname,
+    idNumber,
+    licenseNumber: 'ID-CARD',
+    licenseCodes: 'ID Document',
+    gender: sex === 'M' || sex === 'F' ? sex : parsedId.gender || 'M',
+    dateOfBirth: parsedId.dateOfBirth,
+    countryOfIssue: 'South Africa',
+    citizenship: /citizen/i.test(status)
+      ? 'South African Citizen (RSA)'
+      : status || (parsedId.isCitizen ? 'South African Citizen (RSA)' : 'Permanent Resident'),
+    documentType: 'id_card',
+    format: 'BARCODE_PDF417',
+    confidence: parsedId.isValid ? 0.99 : 0.9,
+  };
+}
+
+/** True when a decoded barcode string is binary data rather than readable text. */
+export function looksBinary(raw: string): boolean {
+  if (raw.includes('�')) return true;
+  let control = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw.charCodeAt(i);
+    if ((c < 0x20 && c !== 0x0a && c !== 0x0d && c !== 0x09) || (c >= 0x7f && c < 0xa0) || c > 0x2000) {
+      control++;
+    }
+  }
+  return raw.length > 0 && control / raw.length > 0.1;
+}
+
+export type DocumentBarcodeResult =
+  | { status: 'ok'; data: DriverLicenseData }
+  /** A barcode was read but is binary and not decodable (partial / UTF-8 mangled read). */
+  | { status: 'unreadable' };
+
+/**
+ * Interprets any document barcode: encrypted SA driver's licence, Smart ID
+ * card, green ID book (13-digit ID) or other text payloads.
+ */
+export function interpretDocumentBarcode(
+  raw: string,
+  preferredType: 'drivers_license' | 'id_card' = 'drivers_license'
+): DocumentBarcodeResult {
+  const dl = decodeSADriversLicence(raw);
+  if (dl) return { status: 'ok', data: driverDataFromSALicence(dl) };
+  if (looksBinary(raw)) return { status: 'unreadable' };
+
+  const smartId = parseSmartIdBarcode(raw);
+  if (smartId) return { status: 'ok', data: smartId };
+
+  return { status: 'ok', data: parseDriverLicenseRawText(raw, preferredType) };
 }

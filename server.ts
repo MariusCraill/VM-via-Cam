@@ -397,9 +397,9 @@ Return JSON with keys:
   // ==========================================
 
   // OCR Scanner endpoint for Driver's License cards or ID Cards / Smart ID
-  app.post('/api/scan-drivers-license', async (req, res) => {
+  const scanIdentityDocument = async (req: express.Request, res: express.Response, scanType: string) => {
     try {
-      const { imageBase64, scanType = 'drivers_license' } = req.body;
+      const { imageBase64 } = req.body;
       if (!imageBase64) {
         return res.status(400).json({ error: 'imageBase64 is required' });
       }
@@ -436,7 +436,9 @@ Carefully read and extract the person's identity information:
 
 Return valid JSON ONLY with these keys. If any field is unreadable, set it to null.`
         : `You are an expert automotive and driver's licence OCR vision specialist.
-Task: Inspect this photo of a driver's license (South African driving licence card front or reverse barcode, or international driver license).
+Task: Inspect this photo of a driver's license (South African driving licence card, or international driver license).
+Read the PRINTED text on the card. Note: the PDF417 barcode on the back of a South African licence card is encrypted and cannot be read visually, so ignore it; if only the back is visible, extract what is printed there and leave the rest null.
+South African card layout hints: surname and initials at the top, ID number (13 digits), licence number (12 characters, e.g. "1234567890AB"), "Valid" from - to dates, codes (A1, A, B, EB, C1, C, EC1, EC), and a date for each code.
 Carefully read and extract the driver information:
 1. "fullName": Full name of the driver (e.g. "Sipho Nhlanhla Dlamini", "Amanda van der Merwe")
 2. "surname": Driver surname / family name
@@ -505,13 +507,12 @@ Return valid JSON ONLY matching these keys. If any field is unreadable, set it t
       console.error('API /api/scan-drivers-license error:', err);
       return res.status(500).json({ error: err.message || 'Identity document scan failed' });
     }
-  });
+  };
 
-  // Alias endpoint for ID card scan
-  app.post('/api/scan-id-card', async (req, res) => {
-    req.body.scanType = 'id_card';
-    return (app as any)._router.handle(req, res);
-  });
+  app.post('/api/scan-drivers-license', (req, res) =>
+    scanIdentityDocument(req, res, req.body?.scanType === 'id_card' ? 'id_card' : 'drivers_license')
+  );
+  app.post('/api/scan-id-card', (req, res) => scanIdentityDocument(req, res, 'id_card'));
 
   // Get all visitors (with optional search query & status filter) + statistics
   app.get('/api/visitors', (req, res) => {
@@ -692,27 +693,36 @@ Return valid JSON ONLY matching these keys. If any field is unreadable, set it t
         'Notes',
       ];
 
-      const rows = visitors.map((v) => [
-        `"${v.passNumber}"`,
-        `"${v.status}"`,
-        `"${new Date(v.entryTime).toISOString()}"`,
-        `"${v.exitTime ? new Date(v.exitTime).toISOString() : ''}"`,
-        `"${v.durationMinutes || ''}"`,
-        `"${v.vehicle.licenceNumber}"`,
-        `"${v.vehicle.make}"`,
-        `"${v.vehicle.seriesName}"`,
-        `"${v.vehicle.colour || ''}"`,
-        `"${v.driver.fullName}"`,
-        `"${v.driver.idNumber}"`,
-        `"${v.driver.licenseNumber}"`,
-        `"${v.destination.unitVisited}"`,
-        `"${v.destination.residentName}"`,
-        `"${v.destination.purpose}"`,
-        `"${v.destination.passengersCount}"`,
-        `"${v.destination.gateLane}"`,
-        `"${v.destination.securityOfficer}"`,
-        `"${(v.destination.notes || '').replace(/"/g, '""')}"`,
-      ]);
+      // Quote every field, escape quotes, and neutralise spreadsheet formula injection.
+      const csvCell = (value: unknown) => {
+        let text = value == null ? '' : String(value);
+        if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+        return `"${text.replace(/"/g, '""')}"`;
+      };
+
+      const rows = visitors.map((v) =>
+        [
+          v.passNumber,
+          v.status,
+          new Date(v.entryTime).toISOString(),
+          v.exitTime ? new Date(v.exitTime).toISOString() : '',
+          v.durationMinutes || '',
+          v.vehicle.licenceNumber,
+          v.vehicle.make,
+          v.vehicle.seriesName,
+          v.vehicle.colour,
+          v.driver.fullName,
+          v.driver.idNumber,
+          v.driver.licenseNumber,
+          v.destination.unitVisited,
+          v.destination.residentName,
+          v.destination.purpose,
+          v.destination.passengersCount,
+          v.destination.gateLane,
+          v.destination.securityOfficer,
+          v.destination.notes,
+        ].map(csvCell)
+      );
 
       const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
       res.setHeader('Content-Type', 'text/csv');
