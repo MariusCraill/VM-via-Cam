@@ -1,0 +1,6 @@
+{
+  "name": "GatePass Complex Visitor Management",
+  "description": "Security gate access control application for residential & commercial complexes. Scan vehicle QR code/disc for registration, make and model, scan driver's license, and record persistent visitor entries.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

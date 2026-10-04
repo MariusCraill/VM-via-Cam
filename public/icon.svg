@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ea580c" />
+      <stop offset="100%" stop-color="#dc2626" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background container -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <!-- Scanning Reticle Corners -->
+  <g stroke="#f97316" stroke-width="12" stroke-linecap="round" fill="none">
+    <!-- Top Left -->
+    <path d="M 80 160 L 80 100 L 140 100" />
+    <!-- Top Right -->
+    <path d="M 432 160 L 432 100 L 372 100" />
+    <!-- Bottom Left -->
+    <path d="M 80 352 L 80 412 L 140 412" />
+    <!-- Bottom Right -->
+    <path d="M 432 352 L 432 412 L 372 412" />
+  </g>
+
+  <!-- Laser Scan Line -->
+  <line x1="84" y1="256" x2="428" y2="256" stroke="#ef4444" stroke-width="6" stroke-linecap="round" filter="url(#glow)" />
+
+  <!-- Stylized Vehicle Silhouette -->
+  <path d="M 140 230 Q 180 180 230 170 L 310 170 Q 360 180 380 230 L 400 240 Q 405 250 395 260 L 120 260 Q 110 250 115 240 Z" fill="#94a3b8" opacity="0.85" />
+  <!-- Windshield Cutout -->
+  <path d="M 190 225 L 235 185 L 295 185 L 335 225 Z" fill="#0f172a" />
+  <!-- Wheels -->
+  <circle cx="170" cy="265" r="22" fill="#0f172a" stroke="#f97316" stroke-width="6" />
+  <circle cx="345" cy="265" r="22" fill="#0f172a" stroke="#f97316" stroke-width="6" />
+
+  <!-- Barcode / Optical Lines Below -->
+  <g fill="#f8fafc">
+    <rect x="120" y="320" width="8" height="48" rx="3" />
+    <rect x="136" y="320" width="16" height="48" rx="3" />
+    <rect x="160" y="320" width="6" height="48" rx="3" />
+    <rect x="174" y="320" width="12" height="48" rx="3" />
+    <rect x="194" y="320" width="18" height="48" rx="3" />
+    <rect x="220" y="320" width="8" height="48" rx="3" />
+    <rect x="236" y="320" width="14" height="48" rx="3" />
+    <rect x="258" y="320" width="6" height="48" rx="3" />
+    <rect x="272" y="320" width="20" height="48" rx="3" />
+    <rect x="300" y="320" width="8" height="48" rx="3" />
+    <rect x="316" y="320" width="16" height="48" rx="3" />
+    <rect x="340" y="320" width="10" height="48" rx="3" />
+    <rect x="358" y="320" width="18" height="48" rx="3" />
+    <rect x="384" y="320" width="8" height="48" rx="3" />
+  </g>
+
+  <!-- Tag Pill: VIN OCR -->
+  <rect x="176" y="392" width="160" height="36" rx="18" fill="url(#accentGrad)" />
+  <text x="256" y="416" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="800" text-anchor="middle" letter-spacing="2">VIN SCANNER</text>
+</svg>
