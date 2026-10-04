@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+/* Global rule: disable all animations, transitions, and jumping transforms */
+*, *::before, *::after {
+  animation: none !important;
+  transition: none !important;
+}
