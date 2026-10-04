@@ -21,8 +21,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Disc,
+  Settings,
 } from 'lucide-react';
-import { VisitorEntry, ComplexStats, ComplexUnit, LicenseDiscData } from './types';
+import { VisitorEntry, ComplexStats, LicenseDiscData, SiteSettings } from './types';
 import { VisitorEntryFlow } from './components/VisitorEntryFlow';
 import { OnSiteVisitorsLog } from './components/OnSiteVisitorsLog';
 import { VisitorHistoryAudit } from './components/VisitorHistoryAudit';
@@ -34,6 +35,20 @@ import { ManualEntryModal } from './components/ManualEntryModal';
 import { VehicleGuideModal } from './components/VehicleGuideModal';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { AdminPanel } from './components/AdminPanel';
+import { adminFetch, fetchAdminStatus, getAdminToken } from './utils/adminApi';
+
+// Shown until /api/settings loads (and if it fails)
+const FALLBACK_SETTINGS: SiteSettings = {
+  siteName: 'GatePass VMS',
+  tagline: 'Complex Visitor Access Control & Database',
+  complexName: 'Residential Estate',
+  complexShortName: '',
+  logoDataUrl: null,
+  gateLanes: ['Main Gate'],
+  securityOfficers: ['Security Officer'],
+  units: [],
+};
 
 type ActiveTab = 'checkin' | 'onsite' | 'audit' | 'tool';
 
@@ -43,7 +58,10 @@ export default function App() {
   // Database state
   const [visitors, setVisitors] = useState<VisitorEntry[]>([]);
   const [stats, setStats] = useState<ComplexStats | null>(null);
-  const [units, setUnits] = useState<ComplexUnit[]>([]);
+  const [settings, setSettings] = useState<SiteSettings>(FALLBACK_SETTINGS);
+  const units = settings.units;
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Digital pass modal state
@@ -61,9 +79,9 @@ export default function App() {
   const fetchDatabaseData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const [resVisitors, resUnits] = await Promise.all([
+      const [resVisitors, resSettings] = await Promise.all([
         fetch('/api/visitors'),
-        fetch('/api/units'),
+        fetch('/api/settings'),
       ]);
 
       if (resVisitors.ok) {
@@ -76,9 +94,8 @@ export default function App() {
         }
       }
 
-      if (resUnits.ok) {
-        const uJson = await resUnits.json();
-        setUnits(uJson);
+      if (resSettings.ok) {
+        setSettings(await resSettings.json());
       }
     } catch (err) {
       console.error('Error loading visitors database:', err);
@@ -90,6 +107,20 @@ export default function App() {
   useEffect(() => {
     fetchDatabaseData();
   }, [fetchDatabaseData]);
+
+  // Restore an admin session from this browser tab, if still valid
+  useEffect(() => {
+    if (!getAdminToken()) return;
+    fetchAdminStatus()
+      .then((s) => setIsAdmin(s.authenticated))
+      .catch(() => setIsAdmin(false));
+  }, []);
+
+  useEffect(() => {
+    document.title = settings.complexShortName
+      ? `${settings.siteName} · ${settings.complexShortName}`
+      : settings.siteName;
+  }, [settings.siteName, settings.complexShortName]);
 
   // Handle new visitor saved from entry flow - default back to main screen
   const handleVisitorSaved = (newVisitor: VisitorEntry) => {
@@ -149,15 +180,15 @@ export default function App() {
   const handleDeleteVisitor = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this visitor log from the database?')) return;
     try {
-      const res = await fetch(`/api/visitors/${id}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        setVisitors((prev) => prev.filter((v) => v.id !== id));
-        fetchDatabaseData();
-      }
-    } catch (err) {
+      await adminFetch(`/api/visitors/${id}`, { method: 'DELETE' });
+      setVisitors((prev) => prev.filter((v) => v.id !== id));
+      fetchDatabaseData();
+    } catch (err: any) {
       console.error('Delete failed:', err);
+      if (err.status === 401) {
+        setIsAdmin(false);
+        window.alert('Your admin session has expired. Please log in again.');
+      }
     }
   };
 
@@ -169,29 +200,39 @@ export default function App() {
 
       {/* TOP APPLICATION HEADER */}
       <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           {/* COMPLEX BRANDING */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-950">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-sm sm:text-base tracking-tight text-white">
-                  GatePass VMS
-                </span>
-                <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
-                  Silver Oaks Estate
-                </span>
+          <div className="flex items-center gap-3 min-w-0">
+            {settings.logoDataUrl ? (
+              <img
+                src={settings.logoDataUrl}
+                alt={`${settings.complexName} logo`}
+                className="w-10 h-10 shrink-0 rounded-2xl object-contain bg-white/5"
+              />
+            ) : (
+              <div className="w-10 h-10 shrink-0 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-950">
+                <ShieldCheck className="w-6 h-6" />
               </div>
-              <p className="text-[11px] text-slate-400 font-medium">
-                Complex Visitor Access Control &amp; Database
-              </p>
+            )}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-sm sm:text-base tracking-tight text-white truncate">
+                  {settings.siteName}
+                </span>
+                {settings.complexShortName && (
+                  <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                    {settings.complexShortName}
+                  </span>
+                )}
+              </div>
+              {settings.tagline && (
+                <p className="text-[11px] text-slate-400 font-medium truncate">{settings.tagline}</p>
+              )}
             </div>
           </div>
 
           {/* TOP ACTIONS & ON-SITE BADGE */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Live On-Site Visitors Button */}
             <button
               onClick={() => setActiveTab('onsite')}
@@ -202,7 +243,10 @@ export default function App() {
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>{onSiteCount} On-Site</span>
+              <span>
+                {onSiteCount}
+                <span className="hidden sm:inline"> On-Site</span>
+              </span>
             </button>
 
             {/* Resident Directory Modal Trigger */}
@@ -212,6 +256,19 @@ export default function App() {
               title="Complex Resident Directory"
             >
               <Building2 className="w-4 h-4" />
+            </button>
+
+            {/* Admin settings */}
+            <button
+              onClick={() => setIsAdminOpen(true)}
+              className={`p-2 rounded-xl border ${
+                isAdmin
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25'
+                  : 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-300 hover:text-white'
+              }`}
+              title={isAdmin ? 'Admin settings (logged in)' : 'Admin login'}
+            >
+              <Settings className="w-4 h-4" />
             </button>
 
             {/* Refresh DB */}
@@ -290,6 +347,7 @@ export default function App() {
         {activeTab === 'checkin' && (
           <VisitorEntryFlow
             units={units}
+            settings={settings}
             onVisitorSaved={handleVisitorSaved}
           />
         )}
@@ -314,7 +372,7 @@ export default function App() {
               setSelectedPassVisitor(v);
               setIsPassModalOpen(true);
             }}
-            onDelete={handleDeleteVisitor}
+            onDelete={isAdmin ? handleDeleteVisitor : undefined}
           />
         )}
 
@@ -352,6 +410,7 @@ export default function App() {
         isOpen={isPassModalOpen}
         onClose={() => setIsPassModalOpen(false)}
         onCheckout={handleCheckoutVisitor}
+        logoDataUrl={settings.logoDataUrl}
       />
 
       {/* COMPLEX DIRECTORY MODAL */}
@@ -359,6 +418,17 @@ export default function App() {
         isOpen={isDirectoryOpen}
         onClose={() => setIsDirectoryOpen(false)}
         units={units}
+        complexName={settings.complexName}
+      />
+
+      {/* ADMIN SETTINGS */}
+      <AdminPanel
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
+        settings={settings}
+        onSettingsChange={setSettings}
+        isAdmin={isAdmin}
+        onAuthChange={setIsAdmin}
       />
 
       {/* AUXILIARY MODALS */}

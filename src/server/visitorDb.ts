@@ -5,7 +5,7 @@ import { VisitorEntry, ComplexStats, ComplexUnit } from '../types';
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'visitors.json');
 
-// Directory of residential complex units for Silver Oaks Residential Estate
+// Default residents directory, used until an admin edits units (see settingsDb)
 export const COMPLEX_UNITS: ComplexUnit[] = [
   { unitNumber: 'Unit 1', residentName: 'Dr. Johan van Zyl', residentPhone: '+27 82 441 9021', block: 'Block A' },
   { unitNumber: 'Unit 2', residentName: 'Thabo & Naledi Mokoena', residentPhone: '+27 83 229 1145', block: 'Block A' },
@@ -373,10 +373,6 @@ class VisitorDatabase {
       deliveriesToday,
       contractorsToday,
     };
-  }
-
-  public getUnits(): ComplexUnit[] {
-    return COMPLEX_UNITS;
   }
 }
 

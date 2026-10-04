@@ -20,7 +20,8 @@ interface VisitorHistoryAuditProps {
   visitors: VisitorEntry[];
   stats: ComplexStats | null;
   onViewPass: (visitor: VisitorEntry) => void;
-  onDelete: (id: string) => void;
+  /** Omit to hide the delete button (only admins may delete records). */
+  onDelete?: (id: string) => void;
 }
 
 export const VisitorHistoryAudit: React.FC<VisitorHistoryAuditProps> = ({
@@ -252,13 +253,15 @@ export const VisitorHistoryAudit: React.FC<VisitorHistoryAuditProps> = ({
                         >
                           <FileText className="w-3.5 h-3.5 text-emerald-400" />
                         </button>
-                        <button
-                          onClick={() => onDelete(v.id)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 transition"
-                          title="Delete Record"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {onDelete && (
+                          <button
+                            onClick={() => onDelete(v.id)}
+                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/60 text-slate-400 hover:text-rose-300 transition"
+                            title="Delete Record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

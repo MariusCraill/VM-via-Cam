@@ -38,3 +38,11 @@ Scanner requirements:
   barcode is dense, so use autofocus or tap-to-focus and have the user hold the card close.
 - Gemini/vision-model OCR can't decrypt this barcode. If OCR is used as a fallback,
   read the printed text on the **front** of the card instead.
+
+## Admin settings
+
+Tap the gear icon in the header to open **Admin Settings**. There you can edit the site name, tagline, complex name, logo, residents and units (with CSV import and export), gate lanes and security officers, and change the admin password.
+
+- **First login:** if no password exists yet, the first person to open Admin Settings creates it. Set the `ADMIN_PASSWORD` secret (AI Studio → Secrets, or as an env var) to set or reset the password when the server starts. Minimum 6 characters.
+- **Deleting visitor records** in the audit log now requires an admin login.
+- Settings are stored in `data/settings.json` on the server, next to `data/visitors.json`.

@@ -15,6 +15,7 @@ import {
 import { VisitorEntry } from '../types';
 
 interface DigitalVisitorPassModalProps {
+  logoDataUrl?: string | null;
   visitor: VisitorEntry | null;
   isOpen: boolean;
   onClose: () => void;
@@ -26,6 +27,7 @@ export const DigitalVisitorPassModal: React.FC<DigitalVisitorPassModalProps> = (
   isOpen,
   onClose,
   onCheckout,
+  logoDataUrl,
 }) => {
   const [copied, setCopied] = React.useState(false);
 
@@ -49,9 +51,13 @@ export const DigitalVisitorPassModal: React.FC<DigitalVisitorPassModalProps> = (
         {/* Header Ribbon */}
         <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 px-6 py-4 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-white/10 rounded-xl">
-              <ShieldCheck className="w-5 h-5 text-emerald-200" />
-            </div>
+            {logoDataUrl ? (
+              <img src={logoDataUrl} alt="" className="w-9 h-9 rounded-xl object-contain bg-white/90 p-0.5" />
+            ) : (
+              <div className="p-2 bg-white/10 rounded-xl">
+                <ShieldCheck className="w-5 h-5 text-emerald-200" />
+              </div>
+            )}
             <div>
               <div className="text-xs uppercase font-bold tracking-widest text-emerald-200">
                 Official Visitor Pass

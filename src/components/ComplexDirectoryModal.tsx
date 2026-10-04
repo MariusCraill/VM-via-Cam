@@ -6,6 +6,7 @@ interface ComplexDirectoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   units: ComplexUnit[];
+  complexName: string;
   onSelectUnit?: (unitNumber: string) => void;
 }
 
@@ -13,6 +14,7 @@ export const ComplexDirectoryModal: React.FC<ComplexDirectoryModalProps> = ({
   isOpen,
   onClose,
   units,
+  complexName,
   onSelectUnit,
 }) => {
   const [search, setSearch] = useState('');
@@ -38,7 +40,7 @@ export const ComplexDirectoryModal: React.FC<ComplexDirectoryModalProps> = ({
             </div>
             <div>
               <h2 className="font-bold text-white text-sm sm:text-base">Complex Residents Directory</h2>
-              <p className="text-[11px] text-slate-400">Silver Oaks Residential Estate · 45 Units</p>
+              <p className="text-[11px] text-slate-400">{complexName} · {units.length} Units</p>
             </div>
           </div>
           <button
