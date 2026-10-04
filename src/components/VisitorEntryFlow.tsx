@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Car,
   UserCheck,
@@ -19,17 +19,37 @@ import {
   ChevronDown,
   CreditCard,
 } from 'lucide-react';
-import { VehicleEntryData, DriverLicenseData, VisitPurpose, ComplexUnit, VisitorEntry } from '../types';
+import { VehicleEntryData, DriverLicenseData, VisitPurpose, ComplexUnit, VisitorEntry, SiteSettings } from '../types';
 import { VehicleScannerModal } from './VehicleScannerModal';
 import { DriverLicenseScannerModal } from './DriverLicenseScannerModal';
 import { parseSouthAfricanIdNumber } from '../utils/driversLicenseParser';
 
 interface VisitorEntryFlowProps {
   units: ComplexUnit[];
+  settings: Pick<SiteSettings, 'complexName' | 'gateLanes' | 'securityOfficers'>;
   onVisitorSaved: (visitor: VisitorEntry) => void;
 }
 
-export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, onVisitorSaved }) => {
+const LANE_KEY = 'gatepass_gate_lane';
+const OFFICER_KEY = 'gatepass_security_officer';
+
+function readPref(key: string): string {
+  try {
+    return localStorage.getItem(key) || '';
+  } catch {
+    return '';
+  }
+}
+
+function writePref(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // storage unavailable
+  }
+}
+
+export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, settings, onVisitorSaved }) => {
   // Scanned / entered vehicle data
   const [vehicle, setVehicle] = useState<VehicleEntryData | null>(null);
   // Scanned / entered driver data
@@ -38,14 +58,25 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, onVis
   const [driverScanMode, setDriverScanMode] = useState<'drivers_license' | 'id_card'>('drivers_license');
 
   // Visit destination form state
-  const [complexName] = useState('Silver Oaks Residential Estate');
-  const [unitVisited, setUnitVisited] = useState('Unit 7');
-  const [residentName, setResidentName] = useState('Marius Craill');
-  const [residentPhone, setResidentPhone] = useState('+27 82 555 3821');
+  const complexName = settings.complexName;
+  const [unitVisited, setUnitVisited] = useState('');
+  const [residentName, setResidentName] = useState('');
+  const [residentPhone, setResidentPhone] = useState('');
   const [purpose, setPurpose] = useState<VisitPurpose>('RESIDENT_VISIT');
   const [passengersCount, setPassengersCount] = useState(1);
-  const [gateLane, setGateLane] = useState('Main Gate - Inbound Lane 1');
-  const [securityOfficer, setSecurityOfficer] = useState('Officer S. Ndlovu');
+  // Gate lane & officer: chosen per device, remembered between sessions
+  const [gateLane, setGateLane] = useState(() => readPref(LANE_KEY));
+  const [securityOfficer, setSecurityOfficer] = useState(() => readPref(OFFICER_KEY));
+
+  // Fall back to the first configured option if the saved one was removed by an admin
+  useEffect(() => {
+    if (settings.gateLanes.length && !settings.gateLanes.includes(gateLane)) setGateLane(settings.gateLanes[0]);
+  }, [settings.gateLanes, gateLane]);
+  useEffect(() => {
+    if (settings.securityOfficers.length && !settings.securityOfficers.includes(securityOfficer)) {
+      setSecurityOfficer(settings.securityOfficers[0]);
+    }
+  }, [settings.securityOfficers, securityOfficer]);
   const [notes, setNotes] = useState('');
 
   // Modals state
@@ -71,6 +102,9 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, onVis
     setDriver(null);
     setNotes('');
     setPassengersCount(1);
+    setUnitVisited('');
+    setResidentName('');
+    setResidentPhone('');
     setSaveError(null);
     setSaveSuccess(null);
   };
@@ -154,6 +188,9 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, onVis
         setDriver(null);
         setNotes('');
         setPassengersCount(1);
+        setUnitVisited('');
+        setResidentName('');
+        setResidentPhone('');
         setSaveSuccess(`Entry recorded successfully for ${savedDriver} · Vehicle: ${savedLicence}`);
         // Trigger parent callback (returns to main screen, updates DB records)
         onVisitorSaved(json.visitor);
@@ -188,13 +225,41 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, onVis
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          <div className="px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-700 text-slate-300">
-            <span className="text-slate-400">Lane:</span> <span className="font-semibold text-white">{gateLane}</span>
-          </div>
-          <div className="px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-700 text-slate-300">
-            <span className="text-slate-400">Officer:</span> <span className="font-semibold text-white">{securityOfficer}</span>
-          </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs min-w-0 max-w-full">
+          <label className="px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-700 text-slate-300 flex items-center gap-1 min-w-0 max-w-full">
+            <span className="text-slate-400">Lane:</span>
+            <select
+              value={gateLane}
+              onChange={(e) => {
+                setGateLane(e.target.value);
+                writePref(LANE_KEY, e.target.value);
+              }}
+              className="bg-transparent font-semibold text-white focus:outline-none min-w-0 max-w-[12rem] truncate"
+            >
+              {settings.gateLanes.map((l) => (
+                <option key={l} value={l} className="bg-slate-900">
+                  {l}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-700 text-slate-300 flex items-center gap-1 min-w-0 max-w-full">
+            <span className="text-slate-400">Officer:</span>
+            <select
+              value={securityOfficer}
+              onChange={(e) => {
+                setSecurityOfficer(e.target.value);
+                writePref(OFFICER_KEY, e.target.value);
+              }}
+              className="bg-transparent font-semibold text-white focus:outline-none min-w-0 max-w-[10rem] truncate"
+            >
+              {settings.securityOfficers.map((o) => (
+                <option key={o} value={o} className="bg-slate-900">
+                  {o}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </div>
 
@@ -585,9 +650,15 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, onVis
                 onChange={(e) => handleUnitSelect(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 appearance-none font-medium"
               >
+                <option value="" disabled>
+                  Select unit…
+                </option>
                 {units.map((u) => (
                   <option key={u.unitNumber} value={u.unitNumber}>
-                    {u.unitNumber} ({u.residentName} - {u.block})
+                    {u.unitNumber}
+                    {u.residentName || u.block
+                      ? ` (${[u.residentName, u.block].filter(Boolean).join(' - ')})`
+                      : ''}
                   </option>
                 ))}
               </select>
@@ -604,7 +675,7 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, onVis
               type="text"
               value={residentName}
               onChange={(e) => setResidentName(e.target.value)}
-              placeholder="e.g. Marius Craill"
+              placeholder="Resident name"
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 font-medium"
             />
           </div>

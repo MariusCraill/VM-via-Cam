@@ -2,7 +2,8 @@ import express from 'express';
 import path from 'path';
 import { GoogleGenAI } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
-import { visitorDb, COMPLEX_UNITS } from './src/server/visitorDb';
+import { visitorDb } from './src/server/visitorDb';
+import { settingsDb, SettingsValidationError } from './src/server/settingsDb';
 
 const PORT = 3000;
 
@@ -17,8 +18,90 @@ function getGeminiClient(): GoogleGenAI | null {
 
 async function startServer() {
   const app = express();
+  // Behind Cloud Run / AI Studio proxy: use the client IP for login rate limiting.
+  app.set('trust proxy', 1);
 
   app.use(express.json({ limit: '15mb' }));
+
+  // ------------------------------------------------------------------ admin auth
+  const bearerToken = (req: express.Request): string | undefined => {
+    const header = req.headers.authorization || '';
+    return header.startsWith('Bearer ') ? header.slice(7) : undefined;
+  };
+
+  const requireAdmin: express.RequestHandler = (req, res, next) => {
+    if (!settingsDb.isValidSession(bearerToken(req))) {
+      return res.status(401).json({ error: 'Admin login required' });
+    }
+    next();
+  };
+
+  // Public site settings (branding, units/residents, gate lanes, officers)
+  app.get('/api/settings', (req, res) => {
+    res.json(settingsDb.getPublic());
+  });
+
+  app.get('/api/admin/status', (req, res) => {
+    res.json({
+      passwordSet: settingsDb.isPasswordSet(),
+      authenticated: settingsDb.isValidSession(bearerToken(req)),
+    });
+  });
+
+  // First-run only: create the admin password when none exists yet.
+  app.post('/api/admin/setup', (req, res) => {
+    if (settingsDb.isPasswordSet()) {
+      return res.status(409).json({ error: 'Admin password is already set' });
+    }
+    const password = req.body?.password;
+    if (typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    settingsDb.setPassword(password);
+    return res.json({ success: true, token: settingsDb.createSession() });
+  });
+
+  app.post('/api/admin/login', (req, res) => {
+    const clientKey = req.ip || 'unknown';
+    if (!settingsDb.canAttemptLogin(clientKey)) {
+      return res.status(429).json({ error: 'Too many attempts. Try again in 15 minutes.' });
+    }
+    if (!settingsDb.verifyPassword(req.body?.password)) {
+      settingsDb.recordFailedLogin(clientKey);
+      return res.status(401).json({ error: 'Incorrect password' });
+    }
+    settingsDb.clearFailedLogins(clientKey);
+    return res.json({ success: true, token: settingsDb.createSession() });
+  });
+
+  app.post('/api/admin/logout', (req, res) => {
+    settingsDb.endSession(bearerToken(req));
+    res.json({ success: true });
+  });
+
+  app.post('/api/admin/password', requireAdmin, (req, res) => {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!settingsDb.verifyPassword(currentPassword)) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+    if (typeof newPassword !== 'string' || newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters' });
+    }
+    settingsDb.setPassword(newPassword); // also signs out all sessions
+    return res.json({ success: true, token: settingsDb.createSession() });
+  });
+
+  app.put('/api/admin/settings', requireAdmin, (req, res) => {
+    try {
+      return res.json({ success: true, settings: settingsDb.updateSettings(req.body || {}) });
+    } catch (err: any) {
+      if (err instanceof SettingsValidationError) {
+        return res.status(400).json({ error: err.message });
+      }
+      console.error('Settings update failed:', err);
+      return res.status(500).json({ error: 'Failed to save settings' });
+    }
+  });
 
   // Health check
   app.get('/api/health', (req, res) => {
@@ -640,7 +723,7 @@ Return valid JSON ONLY matching these keys. If any field is unreadable, set it t
   });
 
   // Delete a visitor record
-  app.delete('/api/visitors/:id', (req, res) => {
+  app.delete('/api/visitors/:id', requireAdmin, (req, res) => {
     try {
       const { id } = req.params;
       const deleted = visitorDb.deleteVisitor(id);
@@ -664,7 +747,7 @@ Return valid JSON ONLY matching these keys. If any field is unreadable, set it t
 
   // Complex units directory for resident lookup
   app.get('/api/units', (req, res) => {
-    return res.json(visitorDb.getUnits());
+    return res.json(settingsDb.getUnits());
   });
 
   // CSV Export endpoint for body corporate & security compliance

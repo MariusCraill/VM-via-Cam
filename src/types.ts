@@ -130,6 +130,19 @@ export interface ComplexUnit {
   block?: string;
 }
 
+/** Admin-editable site configuration (served publicly, without the admin password hash). */
+export interface SiteSettings {
+  siteName: string;
+  tagline: string;
+  complexName: string;
+  complexShortName: string;
+  /** Logo image as a data URL, or null to use the default shield icon. */
+  logoDataUrl: string | null;
+  gateLanes: string[];
+  securityOfficers: string[];
+  units: ComplexUnit[];
+}
+
 export interface ScanHistoryItem {
   id: string;
   disc: LicenseDiscData;
