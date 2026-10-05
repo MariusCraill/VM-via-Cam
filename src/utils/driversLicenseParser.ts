@@ -26,6 +26,7 @@ export const SAMPLE_DRIVER_LICENSES: SampleDriverLicense[] = [
       documentType: 'drivers_license',
       format: 'BARCODE_PDF417',
       confidence: 0.99,
+      photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=320&auto=format&fit=crop&q=80',
     },
   },
   {
@@ -46,6 +47,7 @@ export const SAMPLE_DRIVER_LICENSES: SampleDriverLicense[] = [
       documentType: 'drivers_license',
       format: 'BARCODE_PDF417',
       confidence: 0.98,
+      photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=320&auto=format&fit=crop&q=80',
     },
   },
   {
@@ -66,6 +68,7 @@ export const SAMPLE_DRIVER_LICENSES: SampleDriverLicense[] = [
       documentType: 'drivers_license',
       format: 'OCR_VISION',
       confidence: 0.96,
+      photoUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=320&auto=format&fit=crop&q=80',
     },
   },
   {
@@ -86,6 +89,7 @@ export const SAMPLE_DRIVER_LICENSES: SampleDriverLicense[] = [
       documentType: 'drivers_license',
       format: 'OCR_VISION',
       confidence: 0.97,
+      photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=320&auto=format&fit=crop&q=80',
     },
   },
 ];
@@ -110,6 +114,7 @@ export const SAMPLE_ID_CARDS: SampleDriverLicense[] = [
       documentType: 'id_card',
       format: 'OCR_VISION',
       confidence: 0.99,
+      photoUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=320&auto=format&fit=crop&q=80',
     },
   },
   {
@@ -131,6 +136,7 @@ export const SAMPLE_ID_CARDS: SampleDriverLicense[] = [
       documentType: 'id_card',
       format: 'OCR_VISION',
       confidence: 0.98,
+      photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=320&auto=format&fit=crop&q=80',
     },
   },
   {
@@ -152,6 +158,7 @@ export const SAMPLE_ID_CARDS: SampleDriverLicense[] = [
       documentType: 'id_card',
       format: 'OCR_VISION',
       confidence: 0.97,
+      photoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=320&auto=format&fit=crop&q=80',
     },
   },
 ];

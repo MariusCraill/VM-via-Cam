@@ -17,6 +17,8 @@ import {
   CheckCircle2,
   Download,
   FileUp,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { ComplexUnit, SiteSettings } from '../types';
 import {
@@ -35,13 +37,15 @@ interface AdminPanelProps {
   onSettingsChange: (settings: SiteSettings) => void;
   isAdmin: boolean;
   onAuthChange: (isAdmin: boolean) => void;
+  theme?: 'light' | 'dark';
+  onThemeChange?: (theme: 'light' | 'dark') => void;
 }
 
 type Section = 'branding' | 'residents' | 'gate' | 'security';
 
 const inputClass =
-  'w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500';
-const labelClass = 'block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1';
+  'w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition shadow-xs';
+const labelClass = 'block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1';
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   isOpen,
@@ -50,6 +54,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onSettingsChange,
   isAdmin,
   onAuthChange,
+  theme,
+  onThemeChange,
 }) => {
   const [section, setSection] = useState<Section>('branding');
   const [draft, setDraft] = useState<SiteSettings>(settings);
@@ -248,31 +254,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 sm:p-5">
-              {section === 'branding' && <BrandingSection draft={draft} setDraft={setDraft} />}
+              {section === 'branding' && (
+                <BrandingSection
+                  draft={draft}
+                  setDraft={setDraft}
+                  theme={theme}
+                  onThemeChange={onThemeChange}
+                />
+              )}
               {section === 'residents' && <ResidentsSection draft={draft} setDraft={setDraft} />}
               {section === 'gate' && <GateSection draft={draft} setDraft={setDraft} />}
               {section === 'security' && <SecuritySection onUnauthorized={() => onAuthChange(false)} />}
             </div>
 
             {section !== 'security' && (
-              <div className="px-4 py-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-3">
+              <div className="px-4 py-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
                 <div className="text-xs min-h-[1rem]">
                   {message ? (
                     <span
-                      className={`flex items-center gap-1.5 ${message.type === 'ok' ? 'text-emerald-400' : 'text-rose-400'}`}
+                      className={`flex items-center gap-1.5 ${message.type === 'ok' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}
                     >
                       {message.type === 'ok' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                       {message.text}
                     </span>
                   ) : isDirty ? (
-                    <span className="text-amber-400">Unsaved changes</span>
+                    <span className="text-amber-600 dark:text-amber-400 font-semibold">Unsaved changes</span>
                   ) : null}
                 </div>
                 <div className="flex gap-2">
                   {isDirty && (
                     <button
                       onClick={() => setDraft(settings)}
-                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
+                      className="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition"
                     >
                       Discard
                     </button>
@@ -280,7 +293,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <button
                     onClick={handleSave}
                     disabled={!isDirty || isSaving}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 transition shadow-sm"
                   >
                     <Save className="w-4 h-4" />
                     {isSaving ? 'Saving…' : 'Save changes'}
@@ -300,9 +313,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 interface SectionProps {
   draft: SiteSettings;
   setDraft: React.Dispatch<React.SetStateAction<SiteSettings>>;
+  theme?: 'light' | 'dark';
+  onThemeChange?: (theme: 'light' | 'dark') => void;
 }
 
-const BrandingSection: React.FC<SectionProps> = ({ draft, setDraft }) => {
+const BrandingSection: React.FC<SectionProps> = ({ draft, setDraft, theme, onThemeChange }) => {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
 
@@ -324,6 +339,36 @@ const BrandingSection: React.FC<SectionProps> = ({ draft, setDraft }) => {
 
   return (
     <div className="space-y-5">
+      {/* Light / Dark Mode Selection */}
+      <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-2">
+        <label className={labelClass}>Interface Appearance (Default: Light Mode)</label>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => onThemeChange?.('light')}
+            className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition ${
+              theme === 'light'
+                ? 'bg-amber-500/15 border-amber-500 text-amber-700 dark:text-amber-300 shadow-xs'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            <Sun className="w-4 h-4 text-amber-500" />
+            <span>Light Mode (Default)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onThemeChange?.('dark')}
+            className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition ${
+              theme === 'dark'
+                ? 'bg-indigo-500/15 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            <Moon className="w-4 h-4 text-indigo-400" />
+            <span>Dark Mode</span>
+          </button>
+        </div>
+      </div>
       <div>
         <label className={labelClass}>Logo</label>
         <div className="flex items-center gap-4">

@@ -212,15 +212,31 @@ export const OnSiteVisitorsLog: React.FC<OnSiteVisitorsLogProps> = ({
 
                   {/* Driver & Unit Details */}
                   <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
-                    <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
-                      <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
-                        <User className="w-3 h-3 text-blue-400" /> Driver
-                      </div>
-                      <div className="font-semibold text-white truncate mt-0.5">
-                        {v.driver.fullName}
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-mono truncate">
-                        ID: {v.driver.idNumber || v.driver.licenseNumber}
+                    <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60 flex items-center gap-2.5">
+                      {v.driver.photoUrl ? (
+                        <img
+                          src={v.driver.photoUrl}
+                          alt={v.driver.fullName}
+                          className="w-10 h-10 rounded-xl object-cover border border-emerald-500/40 shrink-0 bg-slate-900"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-blue-950/60 border border-blue-800/40 flex items-center justify-center text-blue-400 shrink-0">
+                          <User className="w-5 h-5" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
+                          <span className="truncate">Driver</span>
+                          {v.driver.documentType === 'id_card' && (
+                            <span className="text-[9px] px-1 rounded bg-indigo-500/20 text-indigo-300 font-bold">ID</span>
+                          )}
+                        </div>
+                        <div className="font-semibold text-white truncate mt-0.5">
+                          {v.driver.fullName}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono truncate">
+                          ID: {v.driver.idNumber || v.driver.licenseNumber}
+                        </div>
                       </div>
                     </div>
 

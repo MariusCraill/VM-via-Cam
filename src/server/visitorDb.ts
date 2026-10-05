@@ -62,6 +62,7 @@ function getInitialSeedVisitors(): VisitorEntry[] {
         licenseExpiryDate: '2027-04-15',
         gender: 'M',
         format: 'BARCODE_PDF417',
+        photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=320&auto=format&fit=crop&q=80',
       },
       destination: {
         complexName: 'Silver Oaks Residential Estate',
@@ -104,6 +105,7 @@ function getInitialSeedVisitors(): VisitorEntry[] {
         licenseExpiryDate: '2028-09-10',
         gender: 'M',
         format: 'OCR_VISION',
+        photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=320&auto=format&fit=crop&q=80',
       },
       destination: {
         complexName: 'Silver Oaks Residential Estate',
@@ -146,6 +148,7 @@ function getInitialSeedVisitors(): VisitorEntry[] {
         licenseExpiryDate: '2026-12-05',
         gender: 'M',
         format: 'BARCODE_PDF417',
+        photoUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=320&auto=format&fit=crop&q=80',
       },
       destination: {
         complexName: 'Silver Oaks Residential Estate',
@@ -190,6 +193,7 @@ function getInitialSeedVisitors(): VisitorEntry[] {
         licenseExpiryDate: '2028-02-28',
         gender: 'F',
         format: 'OCR_VISION',
+        photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=320&auto=format&fit=crop&q=80',
       },
       destination: {
         complexName: 'Silver Oaks Residential Estate',
@@ -221,6 +225,18 @@ class VisitorDatabase {
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
         this.visitors = JSON.parse(raw);
+        // Backfill photos for any existing visitors if missing
+        const seedMap = new Map(getInitialSeedVisitors().map((s) => [s.id, s.driver.photoUrl]));
+        let modified = false;
+        for (const v of this.visitors) {
+          if (!v.driver.photoUrl && seedMap.has(v.id)) {
+            v.driver.photoUrl = seedMap.get(v.id);
+            modified = true;
+          }
+        }
+        if (modified) {
+          this.save();
+        }
       } else {
         // Seed initial visitors
         this.visitors = getInitialSeedVisitors();

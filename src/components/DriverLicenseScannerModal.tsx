@@ -27,6 +27,7 @@ import {
   decodePdf417,
   drawToCanvas,
 } from '../utils/documentBarcodeReader';
+import { cropDriverPhoto } from '../utils/photoCropper';
 
 const BARCODE_UNREADABLE_HINT =
   "Licence barcode found but not fully read. Hold the card closer and steady, avoid glare, or tap Capture & Read.";
@@ -223,6 +224,7 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
       if (json.success && json.data) {
         const d = json.data;
         const isId = scanMode === 'id_card';
+        const photoUrl = await cropDriverPhoto(base64Image, d.faceBoundingBox);
         const driverData: DriverLicenseData = {
           fullName:
             d.fullName ||
@@ -243,6 +245,8 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
           documentType: scanMode,
           format: 'OCR_VISION',
           confidence: d.confidence || 0.95,
+          photoUrl: photoUrl || undefined,
+          documentImageUrl: base64Image,
         };
 
         stopCamera();
@@ -281,15 +285,21 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
     let frameCount = 0;
     const workCanvas = document.createElement('canvas');
 
-    const accept = (raw: string): boolean => {
+    const accept = async (raw: string): Promise<boolean> => {
       const result = interpretDocumentBarcode(raw, scanMode);
       if (result.status === 'unreadable') {
         setErrorMessage(BARCODE_UNREADABLE_HINT);
         return false;
       }
       active = false;
+      const liveFrame = captureFrame();
+      const photo = liveFrame ? await cropDriverPhoto(liveFrame) : undefined;
       stopCamera();
-      onDriverDetected(result.data);
+      onDriverDetected({
+        ...result.data,
+        photoUrl: result.data.photoUrl || photo || undefined,
+        documentImageUrl: liveFrame || undefined,
+      });
       onClose();
       return true;
     };
@@ -320,7 +330,7 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
               if (!active) return;
               const rawText: string = detected.rawValue || '';
               if (rawText && !looksBinary(rawText)) {
-                if (accept(rawText)) return;
+                if (await accept(rawText)) return;
                 continue;
               }
               const box = detected.boundingBox;
@@ -330,7 +340,7 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
                 const crop = { x: box.x - mx, y: box.y - my, width: box.width + 2 * mx, height: box.height + 2 * my };
                 if (drawToCanvas(workCanvas, video, vw, vh, 1600, crop)) {
                   const raw = decodePdf417(workCanvas);
-                  if (raw && accept(raw)) return;
+                  if (raw && (await accept(raw))) return;
                 }
               }
               setErrorMessage(BARCODE_UNREADABLE_HINT);
@@ -346,7 +356,7 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
         const maxSide = frameCount++ % 2 === 0 ? 1920 : 1280;
         if (drawToCanvas(workCanvas, video, vw, vh, maxSide)) {
           const raw = decodeDocumentBarcode(workCanvas);
-          if (raw && active) accept(raw);
+          if (raw && active) await accept(raw);
         }
       } catch (err) {
         console.warn('Scan frame error:', err);
@@ -387,8 +397,13 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
       if (raw) {
         const result = interpretDocumentBarcode(raw, scanMode);
         if (result.status === 'ok') {
+          const photoUrl = await cropDriverPhoto(base64Image);
           stopCamera();
-          onDriverDetected(result.data);
+          onDriverDetected({
+            ...result.data,
+            photoUrl: result.data.photoUrl || photoUrl || undefined,
+            documentImageUrl: base64Image,
+          });
           onClose();
           return;
         }
@@ -417,25 +432,25 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
   if (!isOpen) return null;
 
   return (
-    <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md">
-      <div className="modal-sheet relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md">
+      <div className="modal-sheet relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Top Header */}
-        <div className="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+        <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
           <div className="flex items-center gap-2.5">
             <div
               className={`p-2 rounded-xl border ${
                 scanMode === 'id_card'
-                  ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
-                  : 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                  ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-600 dark:text-indigo-400'
+                  : 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400'
               }`}
             >
               {scanMode === 'id_card' ? <CreditCard className="w-5 h-5" /> : <Car className="w-5 h-5" />}
             </div>
             <div>
-              <h2 className="font-bold text-white text-sm sm:text-base">
+              <h2 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
                 {scanMode === 'id_card' ? 'Scan ID Card / Smart ID' : "Scan Driver's License"}
               </h2>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 {scanMode === 'id_card'
                   ? 'RSA Smart ID card or green barcoded ID document'
                   : 'South African driving licence card or reverse barcode'}
@@ -447,18 +462,18 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
               stopCamera();
               onClose();
             }}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Scan Mode Segmented Switcher (Driver's License vs ID Card) */}
-        <div className="px-5 py-2.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-2">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+        <div className="px-5 py-2.5 bg-slate-100/80 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Document Type:
           </span>
-          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <div className="flex bg-white dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <button
               onClick={() => {
                 setScanMode('drivers_license');
@@ -467,7 +482,7 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 scanMode === 'drivers_license'
                   ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               <Car className="w-3.5 h-3.5" />
@@ -481,7 +496,7 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 scanMode === 'id_card'
                   ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               <CreditCard className="w-3.5 h-3.5" />
@@ -605,7 +620,7 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
         </div>
 
         {/* Footer Controls & Quick Test Samples */}
-        <div className="p-4 bg-slate-950 border-t border-slate-800 space-y-3">
+        <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 space-y-3">
           {/* Action Trigger Buttons */}
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -626,7 +641,7 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isAiProcessing}
-              className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center justify-center gap-2 disabled:opacity-50"
+              className="py-3 px-4 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs border border-slate-200 dark:border-slate-700 flex items-center justify-center gap-2 disabled:opacity-50 transition shadow-xs"
             >
               <Upload className="w-4 h-4" />
               <span>Upload Photo</span>
@@ -642,12 +657,12 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
 
           {/* 1-Click Fast Test Drivers / ID Cards */}
           {/* Collapsed by default so the camera gets the space */}
-          <details className="group pt-2 border-t border-slate-800/80">
-            <summary className="cursor-pointer select-none list-none py-1.5 text-xs font-semibold text-slate-400 flex items-center justify-between">
+          <details className="group pt-2 border-t border-slate-200 dark:border-slate-800/80">
+            <summary className="cursor-pointer select-none list-none py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center justify-between">
               <span>Test samples ({scanMode === 'id_card' ? 'Smart ID Cards' : "Driver's Licenses"})</span>
-              <span className="text-slate-500 group-open:rotate-180">▾</span>
+              <span className="text-slate-400 dark:text-slate-500 group-open:rotate-180">▾</span>
             </summary>
-            <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+            <div className="mt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
               {(scanMode === 'id_card' ? SAMPLE_ID_CARDS : SAMPLE_DRIVER_LICENSES).map((s, idx) => (
                 <button
                   key={idx}
@@ -656,15 +671,28 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
                     onDriverDetected(s.data);
                     onClose();
                   }}
-                  className={`p-2 text-left rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800/80 text-[11px] group transition ${
+                  className={`p-2 text-left rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800/80 text-[11px] group transition flex items-center gap-2.5 shadow-xs ${
                     scanMode === 'id_card' ? 'hover:border-indigo-500/40' : 'hover:border-blue-500/40'
                   }`}
                 >
-                  <div className="font-semibold text-slate-200 group-hover:text-blue-400 truncate">
-                    {s.data.fullName}
-                  </div>
-                  <div className="text-[10px] text-slate-500 truncate">
-                    ID: {s.data.idNumber} · {s.category}
+                  {s.data.photoUrl ? (
+                    <img
+                      src={s.data.photoUrl}
+                      alt={s.data.fullName}
+                      className="w-8 h-8 rounded-lg object-cover shrink-0 border border-slate-200 dark:border-slate-700"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-500">
+                      <UserCheck className="w-4 h-4" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-slate-900 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate">
+                      {s.data.fullName}
+                    </div>
+                    <div className="text-[10px] text-slate-500 truncate">
+                      ID: {s.data.idNumber} · {s.category}
+                    </div>
                   </div>
                 </button>
               ))}

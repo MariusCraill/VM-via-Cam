@@ -18,11 +18,16 @@ import {
   FileCheck,
   ChevronDown,
   CreditCard,
+  Camera,
+  User,
+  Maximize2,
+  X,
 } from 'lucide-react';
 import { VehicleEntryData, DriverLicenseData, VisitPurpose, ComplexUnit, VisitorEntry, SiteSettings } from '../types';
 import { VehicleScannerModal } from './VehicleScannerModal';
 import { DriverLicenseScannerModal } from './DriverLicenseScannerModal';
 import { parseSouthAfricanIdNumber } from '../utils/driversLicenseParser';
+import { cropDriverPhoto } from '../utils/photoCropper';
 
 interface VisitorEntryFlowProps {
   units: ComplexUnit[];
@@ -83,6 +88,7 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
   const [isVehicleScannerOpen, setIsVehicleScannerOpen] = useState(false);
   const [isDriverScannerOpen, setIsDriverScannerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
@@ -207,26 +213,26 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
   return (
     <div className="space-y-6">
       {/* Top Banner Notice */}
-      <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 flex flex-wrap items-center justify-between gap-3 sm:gap-4 shadow-xl">
+      <div className="p-3 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 sm:gap-4 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="hidden sm:block p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+          <div className="hidden sm:block p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-white tracking-wide">Complex Gate Check-In</h2>
-              <span className="hidden sm:inline px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-wide">Complex Gate Check-In</h2>
+              <span className="hidden sm:inline px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                 ACTIVE GATE
               </span>
             </div>
-            <p className="hidden sm:block text-xs text-slate-400">
+            <p className="hidden sm:block text-xs text-slate-500 dark:text-slate-400">
               Scan vehicle QR code & driver's license to log authorized entry into database
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs min-w-0 max-w-full">
-          <label className="px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-700 text-slate-300 flex items-center gap-1 min-w-0 max-w-full">
+          <label className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1 min-w-0 max-w-full">
             <span className="text-slate-400">Lane:</span>
             <select
               value={gateLane}
@@ -234,16 +240,16 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
                 setGateLane(e.target.value);
                 writePref(LANE_KEY, e.target.value);
               }}
-              className="bg-transparent font-semibold text-white focus:outline-none min-w-0 max-w-[12rem] truncate"
+              className="bg-transparent font-semibold text-slate-900 dark:text-white focus:outline-none min-w-0 max-w-[12rem] truncate"
             >
               {settings.gateLanes.map((l) => (
-                <option key={l} value={l} className="bg-slate-900">
+                <option key={l} value={l} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                   {l}
                 </option>
               ))}
             </select>
           </label>
-          <label className="px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-700 text-slate-300 flex items-center gap-1 min-w-0 max-w-full">
+          <label className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1 min-w-0 max-w-full">
             <span className="text-slate-400">Officer:</span>
             <select
               value={securityOfficer}
@@ -251,10 +257,10 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
                 setSecurityOfficer(e.target.value);
                 writePref(OFFICER_KEY, e.target.value);
               }}
-              className="bg-transparent font-semibold text-white focus:outline-none min-w-0 max-w-[10rem] truncate"
+              className="bg-transparent font-semibold text-slate-900 dark:text-white focus:outline-none min-w-0 max-w-[10rem] truncate"
             >
               {settings.securityOfficers.map((o) => (
-                <option key={o} value={o} className="bg-slate-900">
+                <option key={o} value={o} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                   {o}
                 </option>
               ))}
@@ -265,19 +271,19 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
 
       {/* Success Notification */}
       {saveSuccess && (
-        <div className="p-4 rounded-2xl bg-emerald-950/80 border border-emerald-600/70 text-emerald-100 flex items-center justify-between gap-3 shadow-lg">
+        <div className="p-4 rounded-2xl bg-emerald-500/10 dark:bg-emerald-950/80 border border-emerald-500/30 dark:border-emerald-600/70 text-emerald-900 dark:text-emerald-100 flex items-center justify-between gap-3 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs font-bold text-emerald-300 uppercase tracking-wider">Gate Check-In Completed</div>
-              <div className="text-sm font-semibold text-white">{saveSuccess}</div>
+              <div className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">Gate Check-In Completed</div>
+              <div className="text-sm font-semibold text-slate-900 dark:text-white">{saveSuccess}</div>
             </div>
           </div>
           <button
             onClick={() => setSaveSuccess(null)}
-            className="px-3 py-1.5 rounded-xl bg-emerald-900/60 hover:bg-emerald-800 text-xs text-emerald-200 font-semibold"
+            className="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 dark:bg-emerald-900/60 dark:hover:bg-emerald-800 text-xs text-emerald-800 dark:text-emerald-200 font-semibold transition"
           >
             Dismiss
           </button>
@@ -287,26 +293,26 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
       {/* Two Scanning Panels (Vehicle QR & Driver License) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* PANEL 1: Vehicle QR / Disc Scan */}
-        <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl flex flex-col justify-between">
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
-                <div className={`p-2 rounded-xl ${vehicle ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'}`}>
+                <div className={`p-2 rounded-xl ${vehicle ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30'}`}>
                   <Car className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-white">1. Vehicle Registration</h3>
-                  <p className="text-[11px] text-slate-400">Scan MVLX license disc QR or barcode</p>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">1. Vehicle Registration</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Scan MVLX license disc QR or barcode</p>
                 </div>
               </div>
 
               {vehicle ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                   Captured
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                   Awaiting Scan
                 </span>
               )}
@@ -314,28 +320,28 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
 
             {/* Scanned Vehicle Content (only shown after scan) */}
             {vehicle && (
-              <div className="mt-4 p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3.5">
+              <div className="mt-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3.5 shadow-xs">
                 {/* Car & Make / Color */}
                 <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                     <Car className="w-7 h-7" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                       Vehicle Make &amp; Model
                     </div>
-                    <div className="text-base font-bold text-white truncate">
+                    <div className="text-base font-bold text-slate-900 dark:text-white truncate">
                       {vehicle.make} {vehicle.seriesName}
                     </div>
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      Colour: <span className="text-slate-200 font-bold uppercase">{vehicle.colour || 'White'}</span>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Colour: <span className="text-slate-900 dark:text-slate-200 font-bold uppercase">{vehicle.colour || 'White'}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Licence Plate Registration Number */}
-                <div className="pt-3 border-t border-slate-800/80">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
                     Registration / Licence Plate Number
                   </div>
                   <div className="w-full py-3 px-4 rounded-xl bg-amber-400 border border-amber-300 text-slate-950 font-mono text-2xl font-black tracking-widest text-center shadow-md">
@@ -347,10 +353,10 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
           </div>
 
           {/* Action Trigger for Vehicle Scan */}
-          <div className={`${vehicle ? 'mt-5 pt-3 border-t border-slate-800/80' : 'mt-4'} flex items-center gap-2`}>
+          <div className={`${vehicle ? 'mt-5 pt-3 border-t border-slate-200 dark:border-slate-800/80' : 'mt-4'} flex items-center gap-2`}>
             <button
               onClick={() => setIsVehicleScannerOpen(true)}
-              className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950"
+              className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20"
             >
               <QrCode className="w-4 h-4" />
               <span>{vehicle ? 'Re-scan Vehicle' : 'Scan Vehicle QR / Disc'}</span>
@@ -359,7 +365,7 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
             {vehicle && (
               <button
                 onClick={() => setVehicle(null)}
-                className="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300"
+                className="p-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
                 title="Clear vehicle"
               >
                 <RotateCcw className="w-4 h-4" />
@@ -369,17 +375,17 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
         </div>
 
         {/* PANEL 2: Driver / Identity Scan (Optional: Driver's License or ID Card) */}
-        <div className="p-5 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl flex flex-col justify-between">
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div
                   className={`p-2 rounded-xl ${
                     driver
                       ? driver.documentType === 'id_card'
-                        ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30'
-                        : 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
-                      : 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                        ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30'
+                        : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30'
+                      : 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/30'
                   }`}
                 >
                   {driver?.documentType === 'id_card' ? (
@@ -389,8 +395,8 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
                   )}
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-white">2. Driver / Identity Verification</h3>
-                  <p className="text-[11px] text-slate-400">
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">2. Driver / Identity Verification</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     Scan Driver's License or ID Card (optional)
                   </p>
                 </div>
@@ -400,15 +406,15 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
                 <span
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${
                     driver.documentType === 'id_card'
-                      ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
-                      : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                      ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30'
+                      : 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30'
                   }`}
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   {driver.documentType === 'id_card' ? 'ID Verified' : 'License Verified'}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
                   Awaiting Scan
                 </span>
               )}
@@ -416,10 +422,10 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
 
             {/* Document Selection Tabs (when awaiting scan) */}
             {!driver && (
-              <div className="mt-4 p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-2.5">
-                <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+              <div className="mt-4 p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80 space-y-2.5">
+                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                   <span>Choose verification method:</span>
-                  <span className="text-[10px] text-indigo-400 font-semibold">Driver's License or ID Card</span>
+                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">Driver's License or ID Card</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -428,17 +434,17 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
                       setDriverScanMode('drivers_license');
                       setIsDriverScannerOpen(true);
                     }}
-                    className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                    className={`p-3 rounded-xl border text-left transition flex flex-col justify-between shadow-xs ${
                       driverScanMode === 'drivers_license'
-                        ? 'bg-blue-600/15 border-blue-500/40 text-blue-300'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                        ? 'bg-blue-600/10 border-blue-500/40 text-blue-700 dark:text-blue-300'
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <Car className="w-4 h-4 text-blue-400" />
-                      <span className="text-xs font-bold text-white">Driver's License</span>
+                      <Car className="w-4 h-4 text-blue-500" />
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">Driver's License</span>
                     </div>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
                       Driving licence card / codes
                     </span>
                   </button>
@@ -449,17 +455,17 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
                       setDriverScanMode('id_card');
                       setIsDriverScannerOpen(true);
                     }}
-                    className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                    className={`p-3 rounded-xl border text-left transition flex flex-col justify-between shadow-xs ${
                       driverScanMode === 'id_card'
-                        ? 'bg-indigo-600/15 border-indigo-500/40 text-indigo-300'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                        ? 'bg-indigo-600/10 border-indigo-500/40 text-indigo-700 dark:text-indigo-300'
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <CreditCard className="w-4 h-4 text-indigo-400" />
-                      <span className="text-xs font-bold text-white">ID Card Scan</span>
+                      <CreditCard className="w-4 h-4 text-indigo-500" />
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">ID Card Scan</span>
                     </div>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
                       Smart ID / Green Book
                     </span>
                   </button>
@@ -470,42 +476,103 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
             {/* Scanned Driver Content (only shown after scan) */}
             {driver && (
               <div className="mt-4 space-y-3">
-                {/* Driver Name & Badge */}
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        {driver.documentType === 'id_card' ? 'ID Holder Full Name' : 'Driver Full Name'}
+                {/* Driver Photo & Identification Card */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3 shadow-xs">
+                  <div className="flex items-start gap-3.5">
+                    {/* Scanned Driver Portrait Photo */}
+                    {driver.photoUrl ? (
+                      <div className="relative shrink-0">
+                        <img
+                          src={driver.photoUrl}
+                          alt={driver.fullName}
+                          onClick={() => setSelectedPhotoUrl(driver.documentImageUrl || driver.photoUrl || null)}
+                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-emerald-500/40 dark:border-emerald-500/50 shadow-md bg-slate-100 dark:bg-slate-900 cursor-pointer hover:opacity-90 transition"
+                          title="Click to expand driver photo"
+                        />
+                        <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500 text-white flex items-center gap-0.5 shadow-sm">
+                          <Check className="w-2.5 h-2.5" />
+                          Photo
+                        </span>
                       </div>
-                      <div className="text-base font-bold text-white mt-0.5">
-                        {driver.fullName}
+                    ) : (
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-slate-400 shrink-0">
+                        <User className="w-6 h-6" />
+                        <span className="text-[9px] mt-0.5 text-slate-500">No Photo</span>
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-1">
+                        <div className="min-w-0">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                            {driver.documentType === 'id_card' ? 'ID Holder Full Name' : 'Driver Full Name'}
+                          </div>
+                          <div className="text-base font-bold text-slate-900 dark:text-white mt-0.5 truncate">
+                            {driver.fullName}
+                          </div>
+                        </div>
+                        {driver.documentType === 'id_card' ? (
+                          <span className="shrink-0 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
+                            <CreditCard className="w-3 h-3" />
+                            Smart ID
+                          </span>
+                        ) : (
+                          <span className="shrink-0 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                            <Car className="w-3 h-3" />
+                            {driver.licenseCodes || 'Code B'}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Photo Actions: Capture / Update or View */}
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <label className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer flex items-center gap-1">
+                          <Camera className="w-3.5 h-3.5" />
+                          <span>{driver.photoUrl ? 'Update Photo' : 'Capture Driver Photo'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="user"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const f = e.target.files?.[0];
+                              if (!f) return;
+                              const r = new FileReader();
+                              r.onload = async () => {
+                                const b64 = r.result as string;
+                                const cropped = await cropDriverPhoto(b64);
+                                setDriver((prev) => (prev ? { ...prev, photoUrl: cropped, documentImageUrl: b64 } : null));
+                              };
+                              r.readAsDataURL(f);
+                            }}
+                          />
+                        </label>
+                        {driver.photoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPhotoUrl(driver.documentImageUrl || driver.photoUrl || null)}
+                            className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 flex items-center gap-1 ml-1"
+                          >
+                            <Maximize2 className="w-3 h-3" />
+                            <span>Expand</span>
+                          </button>
+                        )}
                       </div>
                     </div>
-                    {driver.documentType === 'id_card' ? (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
-                        <CreditCard className="w-3 h-3" />
-                        Smart ID Card
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 flex items-center gap-1">
-                        <Car className="w-3 h-3" />
-                        {driver.licenseCodes || 'Code B'}
-                      </span>
-                    )}
                   </div>
 
-                  <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 gap-2 text-xs">
+                  <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800/80 grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <div className="text-[10px] text-slate-400 uppercase font-semibold">13-Digit RSA ID:</div>
-                      <div className="font-mono text-slate-200 font-semibold mt-0.5">
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">13-Digit RSA ID:</div>
+                      <div className="font-mono text-slate-800 dark:text-slate-200 font-semibold mt-0.5">
                         {driver.idNumber || 'Recorded'}
                       </div>
                     </div>
                     <div>
-                      <div className="text-[10px] text-slate-400 uppercase font-semibold">
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">
                         {driver.documentType === 'id_card' ? 'Card / Doc Number:' : 'License Number:'}
                       </div>
-                      <div className="font-mono text-slate-200 font-semibold mt-0.5">
+                      <div className="font-mono text-slate-800 dark:text-slate-200 font-semibold mt-0.5">
                         {driver.documentType === 'id_card'
                           ? driver.idCardNumber || driver.licenseNumber || 'ID-CARD'
                           : driver.licenseNumber}
@@ -514,8 +581,8 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
                   </div>
 
                   {idValidation?.isValid && (
-                    <div className="mt-1 p-2 rounded-xl bg-emerald-950/40 border border-emerald-800/50 flex items-center gap-2 text-[11px] text-emerald-300">
-                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <div className="mt-1 p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 dark:border-emerald-800/50 flex items-center gap-2 text-[11px] text-emerald-800 dark:text-emerald-300">
+                      <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span>
                         Valid RSA ID: Born {idValidation.dateOfBirth} · Gender:{' '}
                         {idValidation.gender === 'M' ? 'Male' : 'Female'}
@@ -525,19 +592,19 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">
                       {driver.documentType === 'id_card' ? 'Status / Citizenship:' : 'License Expiry:'}
                     </span>
-                    <div className="font-semibold text-slate-200 text-[11px] mt-0.5 truncate">
+                    <div className="font-semibold text-slate-800 dark:text-slate-200 text-[11px] mt-0.5 truncate">
                       {driver.documentType === 'id_card'
                         ? driver.citizenship || 'South African Citizen (RSA)'
                         : driver.licenseExpiryDate || 'Active'}
                     </div>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold">Country of Issue:</span>
-                    <div className="font-semibold text-slate-200 text-[11px] mt-0.5">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold">Country of Issue:</span>
+                    <div className="font-semibold text-slate-800 dark:text-slate-200 text-[11px] mt-0.5">
                       {driver.countryOfIssue || 'South Africa'}
                     </div>
                   </div>

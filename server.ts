@@ -516,6 +516,7 @@ Carefully read and extract the person's identity information:
 9. "idCardNumber": Document / Smart ID card number printed on card (e.g. "ZA-12345678" or number above barcode)
 10. "countryOfIssue": Country of issue (e.g. "South Africa")
 11. "confidence": Confidence score between 0.0 and 1.0
+12. "faceBoundingBox": [ymin, xmin, ymax, xmax] - Normalized coordinates of the cardholder's face/portrait photo on the card (integers 0-1000, e.g. [180, 50, 720, 360]), or null if not visible.
 
 Return valid JSON ONLY with these keys. If any field is unreadable, set it to null.`
         : `You are an expert automotive and driver's licence OCR vision specialist.
@@ -535,6 +536,7 @@ Carefully read and extract the driver information:
 10. "dateOfBirth": Date of birth in YYYY-MM-DD format
 11. "countryOfIssue": Country of issue (e.g. "South Africa")
 12. "confidence": Confidence score between 0.0 and 1.0
+13. "faceBoundingBox": [ymin, xmin, ymax, xmax] - Normalized coordinates of the driver's face/portrait photo on the licence card (integers 0-1000, e.g. [160, 40, 700, 350]), or null if not visible.
 
 Return valid JSON ONLY matching these keys. If any field is unreadable, set it to null.`;
 

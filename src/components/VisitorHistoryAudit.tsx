@@ -267,16 +267,31 @@ export const VisitorHistoryAudit: React.FC<VisitorHistoryAuditProps> = ({
 
                     {/* Driver */}
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="font-semibold text-white text-xs">{v.driver.fullName}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">
-                        ID: {v.driver.idNumber || v.driver.licenseNumber}
-                      </div>
-                      <div className="text-[10px] text-slate-500">
-                        {v.driver.documentType === 'id_card' ? (
-                          <span className="text-indigo-400 font-semibold">Smart ID Card</span>
+                      <div className="flex items-center gap-2.5">
+                        {v.driver.photoUrl ? (
+                          <img
+                            src={v.driver.photoUrl}
+                            alt={v.driver.fullName}
+                            className="w-8 h-8 rounded-lg object-cover border border-emerald-500/40 shrink-0 bg-slate-900 shadow-xs"
+                          />
                         ) : (
-                          v.driver.licenseCodes || 'Code B'
+                          <div className="w-8 h-8 rounded-lg bg-blue-950/60 border border-blue-800/40 flex items-center justify-center text-blue-400 shrink-0">
+                            <User className="w-4 h-4" />
+                          </div>
                         )}
+                        <div>
+                          <div className="font-semibold text-white text-xs">{v.driver.fullName}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">
+                            ID: {v.driver.idNumber || v.driver.licenseNumber}
+                          </div>
+                          <div className="text-[10px] text-slate-500">
+                            {v.driver.documentType === 'id_card' ? (
+                              <span className="text-indigo-400 font-semibold">Smart ID Card</span>
+                            ) : (
+                              v.driver.licenseCodes || 'Code B'
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </td>
 

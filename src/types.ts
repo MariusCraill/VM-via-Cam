@@ -63,6 +63,8 @@ export interface DriverLicenseData {
   documentType?: 'drivers_license' | 'id_card';
   idCardNumber?: string;
   citizenship?: string;
+  photoUrl?: string; // Scanned or cropped driver portrait photo
+  documentImageUrl?: string; // Full document photo capture
 }
 
 export interface VehicleEntryData {

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Global rule: disable all animations, transitions, and jumping transforms */
 *, *::before, *::after {
   animation: none !important;

@@ -132,12 +132,25 @@ export const DigitalVisitorPassModal: React.FC<DigitalVisitorPassModalProps> = (
 
             {/* Driver */}
             <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/60 flex items-start gap-3">
-              <div className="p-2 bg-blue-950 text-blue-400 rounded-lg shrink-0">
-                <User className="w-4 h-4" />
-              </div>
+              {visitor.driver.photoUrl ? (
+                <img
+                  src={visitor.driver.photoUrl}
+                  alt={visitor.driver.fullName}
+                  className="w-12 h-12 rounded-xl object-cover border-2 border-emerald-500/40 shrink-0 shadow-md bg-slate-900"
+                />
+              ) : (
+                <div className="p-2.5 bg-blue-950 text-blue-400 rounded-lg shrink-0">
+                  <User className="w-5 h-5" />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] uppercase font-bold text-slate-400">
-                  {visitor.driver.documentType === 'id_card' ? 'Identity (Smart ID Card)' : "Driver's Licence"}
+                <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1.5">
+                  <span>{visitor.driver.documentType === 'id_card' ? 'Identity (Smart ID Card)' : "Driver's Licence"}</span>
+                  {visitor.driver.photoUrl && (
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
+                      Photo Verified
+                    </span>
+                  )}
                 </div>
                 <div className="text-sm font-bold text-white truncate">{visitor.driver.fullName}</div>
                 <div className="text-[11px] text-slate-400 mt-0.5 font-mono">
