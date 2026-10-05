@@ -7,6 +7,18 @@ import { settingsDb, SettingsValidationError } from './src/server/settingsDb';
 
 const PORT = 3000;
 
+const MAX_PHOTO_CHARS = 250_000; // ~180 KB image; the cropped portrait is ~20-40 KB
+
+/** Accepts only a small image data URL (cropped driver portrait) or an https image URL. */
+function sanitizePhotoUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  if (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value) && value.length <= MAX_PHOTO_CHARS) {
+    return value;
+  }
+  if (/^https:\/\/[^\s"'<>]+$/.test(value) && value.length <= 500) return value;
+  return undefined;
+}
+
 // Lazy initialize Gemini client
 let aiClient: GoogleGenAI | null = null;
 function getGeminiClient(): GoogleGenAI | null {
@@ -659,6 +671,7 @@ Return valid JSON ONLY matching these keys. If any field is unreadable, set it t
           countryOfIssue: driver.countryOfIssue || 'South Africa',
           format: driver.format || 'OCR_VISION',
           confidence: driver.confidence || 0.95,
+          photoUrl: sanitizePhotoUrl(driver.photoUrl),
         },
         destination: {
           complexName: destination.complexName || 'Silver Oaks Residential Estate',

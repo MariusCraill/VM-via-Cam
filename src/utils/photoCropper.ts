@@ -43,7 +43,7 @@ export async function cropDriverPhoto(
     const iw = img.naturalWidth || img.width;
     const ih = img.naturalHeight || img.height;
 
-    if (!iw || !ih) return imageBase64;
+    if (!iw || !ih) return '';
 
     let sx = 0;
     let sy = 0;
@@ -107,7 +107,7 @@ export async function cropDriverPhoto(
     canvas.width = targetSize;
     canvas.height = targetSize;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return imageBase64;
+    if (!ctx) return '';
 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
@@ -130,7 +130,8 @@ export async function cropDriverPhoto(
     ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
     return canvas.toDataURL('image/jpeg', 0.88);
   } catch (err) {
-    console.warn('Failed to crop driver photo, returning raw image:', err);
-    return imageBase64;
+    // Don't fall back to the full document image: it is too large to store with the visitor
+    console.warn('Failed to crop driver photo:', err);
+    return '';
   }
 }
