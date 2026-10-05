@@ -450,7 +450,7 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
                           <input
                             type="file"
                             accept="image/*"
-                            capture="user"
+                            capture="environment"
                             className="hidden"
                             onChange={async (e) => {
                               const f = e.target.files?.[0];
@@ -458,7 +458,7 @@ export const VisitorEntryFlow: React.FC<VisitorEntryFlowProps> = ({ units, setti
                               const r = new FileReader();
                               r.onload = async () => {
                                 const b64 = r.result as string;
-                                const cropped = await cropDriverPhoto(b64);
+                                const cropped = await cropDriverPhoto(b64, null, 'portrait');
                                 setDriver((prev) => (prev ? { ...prev, photoUrl: cropped, documentImageUrl: b64 } : null));
                               };
                               r.readAsDataURL(f);

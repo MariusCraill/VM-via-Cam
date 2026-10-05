@@ -214,80 +214,6 @@ export function parseSouthAfricanIdNumber(idStr: string): {
   };
 }
 
-/**
- * Parses raw barcode payload or OCR output from Driver's License or ID Card.
- */
-export function parseDriverLicenseRawText(
-  rawText: string,
-  preferredType: 'drivers_license' | 'id_card' = 'drivers_license'
-): DriverLicenseData {
-  const clean = rawText.trim();
-
-  // Try JSON first (if returned from Gemini API)
-  try {
-    const json = JSON.parse(clean);
-    if (json.fullName || json.licenseNumber || json.idNumber || json.surname) {
-      const docType = json.documentType || preferredType;
-      const isIdCard = docType === 'id_card';
-      return {
-        fullName:
-          json.fullName ||
-          `${json.initials || json.givenNames || ''} ${json.surname || ''}`.trim() ||
-          (isIdCard ? 'ID Card Holder' : 'Driver'),
-        initials: json.initials,
-        surname: json.surname,
-        idNumber: json.idNumber || '',
-        licenseNumber: isIdCard ? json.idCardNumber || 'ID-CARD' : json.licenseNumber || 'DL-PENDING',
-        idCardNumber: json.idCardNumber,
-        licenseCodes: isIdCard ? 'ID Document' : json.licenseCodes || 'Code B',
-        licenseExpiryDate: json.expiryDate || json.licenseExpiryDate,
-        firstIssueDate: json.firstIssueDate,
-        gender: json.gender || 'M',
-        dateOfBirth: json.dateOfBirth,
-        countryOfIssue: json.countryOfIssue || 'South Africa',
-        citizenship: json.citizenship || 'South African Citizen (RSA)',
-        documentType: docType,
-        format: 'OCR_VISION',
-        confidence: json.confidence || 0.95,
-      };
-    }
-  } catch {
-    // Continue to text parsing
-  }
-
-  // Look for 13-digit South African ID number
-  const idMatch = clean.match(/\b\d{13}\b/);
-  const idNumber = idMatch ? idMatch[0] : '';
-  const parsedId = idNumber ? parseSouthAfricanIdNumber(idNumber) : { isValid: false };
-
-  // Look for License number pattern (e.g. DL12345678 or alphanumeric 8-12 chars)
-  const licMatch = clean.match(/\b[A-Z0-9]{8,12}\b/i);
-  const licenseNumber = licMatch ? licMatch[0].toUpperCase() : '';
-
-  // Look for date in YYYY-MM-DD or DD/MM/YYYY
-  const dateMatch = clean.match(/\b(19|20)\d{2}[-/.]\d{2}[-/.]\d{2}\b/);
-  const expiryDate = dateMatch ? dateMatch[0].replace(/[/.]/g, '-') : undefined;
-
-  const isIdCard = preferredType === 'id_card';
-
-  return {
-    fullName: clean.split('\n')[0].substring(0, 40) || (isIdCard ? 'ID Card Visitor' : 'Visitor Driver'),
-    idNumber,
-    licenseNumber: isIdCard ? 'ID-CARD' : licenseNumber || 'DL-PENDING',
-    idCardNumber: isIdCard ? licenseNumber || undefined : undefined,
-    licenseCodes: isIdCard ? 'ID Document' : 'Code B',
-    licenseExpiryDate: isIdCard ? undefined : expiryDate,
-    gender: parsedId.gender || 'M',
-    dateOfBirth: parsedId.dateOfBirth,
-    countryOfIssue: 'South Africa',
-    citizenship: 'South African Citizen (RSA)',
-    documentType: preferredType,
-    rawPayload: clean,
-    format: 'BARCODE_PDF417',
-    confidence: 0.88,
-  };
-}
-
 /** "YYYY/MM/DD" (licence barcode) -> "YYYY-MM-DD". */
 function slashDateToIso(d: string): string | undefined {
   return d ? d.replace(/\//g, '-') : undefined;
@@ -379,17 +305,19 @@ export function looksBinary(raw: string): boolean {
 
 export type DocumentBarcodeResult =
   | { status: 'ok'; data: DriverLicenseData }
+  /** Green ID book barcode: holds only a valid 13-digit ID number, no name or photo. */
+  | { status: 'id_only'; idNumber: string }
   /** A barcode was read but is binary and not decodable (partial / UTF-8 mangled read). */
-  | { status: 'unreadable' };
+  | { status: 'unreadable' }
+  /** A readable barcode that is not an identity document (licence disc, QR code, product barcode). */
+  | { status: 'unrecognised' };
 
 /**
- * Interprets any document barcode: encrypted SA driver's licence, Smart ID
- * card, green ID book (13-digit ID) or other text payloads.
+ * Interprets an identity document barcode: encrypted SA driver's licence,
+ * Smart ID card, or green ID book (13-digit ID number). Anything else is
+ * reported as unrecognised so it is never mistaken for a driver.
  */
-export function interpretDocumentBarcode(
-  raw: string,
-  preferredType: 'drivers_license' | 'id_card' = 'drivers_license'
-): DocumentBarcodeResult {
+export function interpretDocumentBarcode(raw: string): DocumentBarcodeResult {
   const dl = decodeSADriversLicence(raw);
   if (dl) return { status: 'ok', data: driverDataFromSALicence(dl) };
   if (looksBinary(raw)) return { status: 'unreadable' };
@@ -397,5 +325,10 @@ export function interpretDocumentBarcode(
   const smartId = parseSmartIdBarcode(raw);
   if (smartId) return { status: 'ok', data: smartId };
 
-  return { status: 'ok', data: parseDriverLicenseRawText(raw, preferredType) };
+  const idNumber = raw.trim();
+  if (/^\d{13}$/.test(idNumber) && parseSouthAfricanIdNumber(idNumber).isValid) {
+    return { status: 'id_only', idNumber };
+  }
+
+  return { status: 'unrecognised' };
 }

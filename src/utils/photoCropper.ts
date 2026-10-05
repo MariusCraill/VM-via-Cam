@@ -33,10 +33,12 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
  * If no box is provided, we inspect the aspect ratio:
  * - If wide (card landscape): standard RSA driver licence and Smart ID layout puts the portrait on the left side (~4% to ~38% width, ~15% to ~85% height).
  * - If square or portrait: scaled and centered nicely.
+ * A `portrait` source (a photo taken of the driver) is always centre-cropped.
  */
 export async function cropDriverPhoto(
   imageBase64: string,
-  box?: BoxInput
+  box?: BoxInput,
+  source: 'document' | 'portrait' = 'document'
 ): Promise<string> {
   try {
     const img = await loadImage(imageBase64);
@@ -86,7 +88,7 @@ export async function cropDriverPhoto(
     } else {
       // Fallback heuristics: if it's a wide landscape card photo
       const ratio = iw / ih;
-      if (ratio > 1.25) {
+      if (source === 'document' && ratio > 1.25) {
         // RSA Driver License & Smart ID: Photo is on the left side
         sx = Math.floor(iw * 0.03);
         sy = Math.floor(ih * 0.12);

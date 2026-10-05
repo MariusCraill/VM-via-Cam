@@ -31,6 +31,10 @@ import { cropDriverPhoto } from '../utils/photoCropper';
 
 const BARCODE_UNREADABLE_HINT =
   "Licence barcode found but not fully read. Hold the card closer and steady, avoid glare, or tap Capture & Read.";
+const BARCODE_UNRECOGNISED_HINT =
+  'That barcode is not an ID or licence. Scan the barcode on the back of the licence or ID card.';
+const ID_BOOK_HINT =
+  'ID book barcode only holds the ID number. Show the photo page and tap Capture & Read for the name and photo.';
 
 interface DriverLicenseScannerModalProps {
   isOpen: boolean;
@@ -52,11 +56,14 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
   const streamRef = useRef<MediaStream | null>(null);
   const isDecodingRef = useRef(false);
   const scanTimerRef = useRef<number | null>(null);
+  // An ID book barcode triggers one automatic OCR read per opening; later reads only show a hint.
+  const idBookOcrTriedRef = useRef(false);
 
   // Sync mode when opened with new initialMode
   useEffect(() => {
     if (isOpen) {
       setScanMode(initialMode);
+      idBookOcrTriedRef.current = false;
     }
   }, [isOpen, initialMode]);
 
@@ -202,8 +209,9 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
     return canvas.toDataURL('image/jpeg', 0.9);
   };
 
-  // Process image with Gemini Vision OCR
-  const processImageWithAi = async (base64Image: string) => {
+  // Process image with Gemini Vision OCR. `barcodeIdNumber` (from an ID book barcode) is exact,
+  // so it overrides the OCR'd ID number.
+  const processImageWithAi = async (base64Image: string, barcodeIdNumber?: string) => {
     setIsAiProcessing(true);
     setErrorMessage(null);
     try {
@@ -232,7 +240,7 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
             (isId ? 'ID Card Holder' : 'Driver'),
           initials: d.initials,
           surname: d.surname,
-          idNumber: d.idNumber || '',
+          idNumber: barcodeIdNumber || d.idNumber || '',
           licenseNumber: isId ? d.idCardNumber || 'ID-CARD' : d.licenseNumber || 'DL-PENDING',
           idCardNumber: d.idCardNumber,
           licenseCodes: isId ? 'ID Document' : d.licenseCodes || 'Code B',
@@ -286,20 +294,34 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
     const workCanvas = document.createElement('canvas');
 
     const accept = async (raw: string): Promise<boolean> => {
-      const result = interpretDocumentBarcode(raw, scanMode);
+      const result = interpretDocumentBarcode(raw);
       if (result.status === 'unreadable') {
         setErrorMessage(BARCODE_UNREADABLE_HINT);
         return false;
       }
+      if (result.status === 'unrecognised') {
+        setErrorMessage(BARCODE_UNRECOGNISED_HINT);
+        return false;
+      }
+      if (result.status === 'id_only') {
+        // The ID book barcode sits on the photo page, so OCR of this frame can read the name and face.
+        if (idBookOcrTriedRef.current) {
+          setErrorMessage(ID_BOOK_HINT);
+          return false;
+        }
+        const frame = captureFrame();
+        if (!frame) return false;
+        idBookOcrTriedRef.current = true;
+        active = false;
+        await processImageWithAi(frame, result.idNumber);
+        return true;
+      }
+      // Licence and Smart ID barcodes are on the back of the card, so this frame has no portrait.
+      // The driver photo is taken afterwards with "Capture Driver Photo".
       active = false;
       const liveFrame = captureFrame();
-      const photo = liveFrame ? await cropDriverPhoto(liveFrame) : undefined;
       stopCamera();
-      onDriverDetected({
-        ...result.data,
-        photoUrl: result.data.photoUrl || photo || undefined,
-        documentImageUrl: liveFrame || undefined,
-      });
+      onDriverDetected({ ...result.data, documentImageUrl: liveFrame || undefined });
       onClose();
       return true;
     };
@@ -392,28 +414,26 @@ export const DriverLicenseScannerModal: React.FC<DriverLicenseScannerModalProps>
   const processStillImage = async (base64Image: string) => {
     setIsAiProcessing(true);
     setErrorMessage(null);
+    let barcodeIdNumber: string | undefined;
     try {
       const raw = await decodeDocumentBarcodeFromImage(base64Image);
       if (raw) {
-        const result = interpretDocumentBarcode(raw, scanMode);
+        const result = interpretDocumentBarcode(raw);
         if (result.status === 'ok') {
-          const photoUrl = await cropDriverPhoto(base64Image);
+          // Barcode side of the card: no portrait to crop here.
           stopCamera();
-          onDriverDetected({
-            ...result.data,
-            photoUrl: result.data.photoUrl || photoUrl || undefined,
-            documentImageUrl: base64Image,
-          });
+          onDriverDetected({ ...result.data, documentImageUrl: base64Image });
           onClose();
           return;
         }
+        if (result.status === 'id_only') barcodeIdNumber = result.idNumber;
       }
     } catch (err) {
       console.warn('Still image barcode decode failed:', err);
     } finally {
       setIsAiProcessing(false);
     }
-    await processImageWithAi(base64Image);
+    await processImageWithAi(base64Image, barcodeIdNumber);
   };
 
   // Handle file upload
