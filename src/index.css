@@ -57,3 +57,63 @@ html {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
 }
+
+/*
+ * Light theme for components that only have dark styling.
+ * Elements that already declare `dark:` variants are skipped, and anything on
+ * (or inside) a camera view or a coloured surface keeps its original colours.
+ */
+:root.light {
+  --lt-surface: #ffffff;
+  --lt-subtle: #f1f5f9;
+  --lt-muted: #e2e8f0;
+  --lt-border: #e2e8f0;
+  --lt-text: #0f172a;
+  --lt-text-2: #334155;
+}
+
+:root.light :is([class~='bg-slate-900'], [class~='bg-slate-900/90'], [class~='bg-slate-900/80'], [class~='bg-slate-900/95']):not([class*='dark:']):not(.keep-dark, .keep-dark *, .bg-black *) {
+  background-color: var(--lt-surface);
+}
+:root.light :is([class~='bg-slate-950'], [class~='bg-slate-950/80'], [class~='bg-slate-950/70'], [class~='bg-slate-950/60'], [class~='bg-slate-950/50'], [class~='bg-slate-950/40'], [class~='bg-slate-950/30'], [class~='bg-slate-900/60'], [class~='bg-slate-900/50'], [class~='bg-slate-900/40']):not([class*='dark:']):not(.modal-backdrop, .keep-dark, .keep-dark *, .bg-black *) {
+  background-color: var(--lt-subtle);
+}
+:root.light :is([class~='bg-slate-800'], [class~='bg-slate-800/60'], [class~='bg-slate-800/80'], [class~='bg-slate-800/40']):not([class*='dark:']):not(.keep-dark, .keep-dark *, .bg-black *) {
+  background-color: var(--lt-muted);
+}
+:root.light :is([class~='hover:bg-slate-800'], [class~='hover:bg-slate-700']):not([class*='dark:']):not(.keep-dark *):hover {
+  background-color: #cbd5e1;
+}
+:root.light :is([class~='border-slate-800'], [class~='border-slate-700'], [class~='border-slate-800/80'], [class~='border-slate-800/60'], [class~='border-slate-700/80'], [class~='border-slate-700/60'], [class~='border-slate-800/40']):not([class*='dark:']):not(.keep-dark *, .bg-black *) {
+  border-color: var(--lt-border);
+}
+:root.light :is([class~='divide-slate-800'], [class~='divide-slate-800/60']):not([class*='dark:']) > * + * {
+  border-color: var(--lt-border);
+}
+:root.light :is([class~='text-white'], [class~='text-slate-100']):not([class*='dark:']):not([class^='bg-emerald-'], [class*=' bg-emerald-'], [class^='bg-blue-'], [class*=' bg-blue-'], [class^='bg-indigo-'], [class*=' bg-indigo-'], [class^='bg-amber-'], [class*=' bg-amber-'], [class^='bg-rose-'], [class*=' bg-rose-'], [class^='bg-orange-'], [class*=' bg-orange-'], [class^='bg-violet-'], [class*=' bg-violet-'], [class^='bg-teal-'], [class*=' bg-teal-'], [class^='bg-purple-'], [class*=' bg-purple-'], [class^='bg-sky-'], [class*=' bg-sky-'], [class^='bg-red-'], [class*=' bg-red-'], [class^='bg-green-'], [class*=' bg-green-'], [class^='from-'], [class*=' from-'], [class~='bg-slate-700'], [class~='bg-slate-600'], .bg-black, video, .keep-dark):not(:is([class^='bg-emerald-'], [class*=' bg-emerald-'], [class^='bg-blue-'], [class*=' bg-blue-'], [class^='bg-indigo-'], [class*=' bg-indigo-'], [class^='bg-amber-'], [class*=' bg-amber-'], [class^='bg-rose-'], [class*=' bg-rose-'], [class^='bg-orange-'], [class*=' bg-orange-'], [class^='bg-violet-'], [class*=' bg-violet-'], [class^='bg-teal-'], [class*=' bg-teal-'], [class^='bg-purple-'], [class*=' bg-purple-'], [class^='bg-sky-'], [class*=' bg-sky-'], [class^='bg-red-'], [class*=' bg-red-'], [class^='bg-green-'], [class*=' bg-green-'], [class^='from-'], [class*=' from-'], [class~='bg-slate-700'], [class~='bg-slate-600'], .bg-black, video, .keep-dark) *) {
+  color: var(--lt-text);
+}
+:root.light :is([class~='text-slate-200'], [class~='text-slate-300']):not([class*='dark:']):not([class^='bg-emerald-'], [class*=' bg-emerald-'], [class^='bg-blue-'], [class*=' bg-blue-'], [class^='bg-indigo-'], [class*=' bg-indigo-'], [class^='bg-amber-'], [class*=' bg-amber-'], [class^='bg-rose-'], [class*=' bg-rose-'], [class^='bg-orange-'], [class*=' bg-orange-'], [class^='bg-violet-'], [class*=' bg-violet-'], [class^='bg-teal-'], [class*=' bg-teal-'], [class^='bg-purple-'], [class*=' bg-purple-'], [class^='bg-sky-'], [class*=' bg-sky-'], [class^='bg-red-'], [class*=' bg-red-'], [class^='bg-green-'], [class*=' bg-green-'], [class^='from-'], [class*=' from-'], [class~='bg-slate-700'], [class~='bg-slate-600'], .bg-black, video, .keep-dark):not(:is([class^='bg-emerald-'], [class*=' bg-emerald-'], [class^='bg-blue-'], [class*=' bg-blue-'], [class^='bg-indigo-'], [class*=' bg-indigo-'], [class^='bg-amber-'], [class*=' bg-amber-'], [class^='bg-rose-'], [class*=' bg-rose-'], [class^='bg-orange-'], [class*=' bg-orange-'], [class^='bg-violet-'], [class*=' bg-violet-'], [class^='bg-teal-'], [class*=' bg-teal-'], [class^='bg-purple-'], [class*=' bg-purple-'], [class^='bg-sky-'], [class*=' bg-sky-'], [class^='bg-red-'], [class*=' bg-red-'], [class^='bg-green-'], [class*=' bg-green-'], [class^='from-'], [class*=' from-'], [class~='bg-slate-700'], [class~='bg-slate-600'], .bg-black, video, .keep-dark) *) {
+  color: var(--lt-text-2);
+}
+:root.light :is([class~='hover:text-white'], [class~='hover:text-slate-200']):not([class*='dark:']):not(:is([class^='bg-emerald-'], [class*=' bg-emerald-'], [class^='bg-blue-'], [class*=' bg-blue-'], [class^='bg-indigo-'], [class*=' bg-indigo-'], [class^='bg-amber-'], [class*=' bg-amber-'], [class^='bg-rose-'], [class*=' bg-rose-'], [class^='bg-orange-'], [class*=' bg-orange-'], [class^='bg-violet-'], [class*=' bg-violet-'], [class^='bg-teal-'], [class*=' bg-teal-'], [class^='bg-purple-'], [class*=' bg-purple-'], [class^='bg-sky-'], [class*=' bg-sky-'], [class^='bg-red-'], [class*=' bg-red-'], [class^='bg-green-'], [class*=' bg-green-'], [class^='from-'], [class*=' from-'], [class~='bg-slate-700'], [class~='bg-slate-600'], .bg-black, video, .keep-dark) *):hover {
+  color: var(--lt-text);
+}
+:root.light :is([class~='text-emerald-300'], [class~='text-emerald-400']):not([class*='dark:']):not(:is([class^='from-'], [class*=' from-'], .bg-black, .keep-dark) *) {
+  color: #047857;
+}
+:root.light :is([class~='text-amber-300'], [class~='text-amber-400']):not([class*='dark:']):not(:is(.bg-black, .keep-dark) *) {
+  color: #b45309;
+}
+:root.light :is([class~='text-orange-300'], [class~='text-orange-400']):not([class*='dark:']):not(:is(.bg-black, .keep-dark) *) {
+  color: #c2410c;
+}
+:root.light :is([class~='text-rose-300'], [class~='text-rose-200']):not([class*='dark:']):not(:is([class^='bg-rose-6'], [class*=' bg-rose-6'], .keep-dark) *) {
+  color: #be123c;
+}
+:root.light :is([class~='text-blue-300'], [class~='text-blue-400'], [class~='text-indigo-300'], [class~='text-indigo-400']):not([class*='dark:']):not(:is(.bg-black, .keep-dark) *) {
+  color: #4338ca;
+}
+:root.light [class*='shadow-'][class*='-950']:not([class*='dark:']) {
+  --tw-shadow-color: rgb(15 23 42 / 0.08);
+}

@@ -189,24 +189,19 @@ export const OnSiteVisitorsLog: React.FC<OnSiteVisitorsLogProps> = ({
                   </div>
 
                   {/* Vehicle Details */}
-                  <div className="mt-3 p-3 rounded-2xl bg-slate-950 border border-slate-800/80 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="mt-3 p-3 rounded-2xl bg-slate-950 border border-slate-800/80 flex items-center">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="shrink-0 whitespace-nowrap px-2.5 py-1 rounded bg-amber-400 text-slate-950 font-mono font-black text-sm tracking-wider">
                         {v.vehicle.licenceNumber}
                       </div>
-                      <div>
-                        <div className="text-xs font-bold text-white">
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold text-white truncate">
                           {v.vehicle.make} {v.vehicle.seriesName}
                         </div>
-                        <div className="text-[10px] text-slate-400">
-                          Colour: {v.vehicle.colour || 'White'}
+                        <div className="text-xs text-slate-400">
+                          {v.vehicle.colour || 'White'} · in at {v.entryTimeFormatted}
                         </div>
                       </div>
-                    </div>
-
-                    <div className="text-right text-[10px] text-slate-500">
-                      <div>In: {v.entryTimeFormatted}</div>
-                      <div>{v.destination.gateLane.split('-')[0]}</div>
                     </div>
                   </div>
 
@@ -288,7 +283,7 @@ export const OnSiteVisitorsLog: React.FC<OnSiteVisitorsLogProps> = ({
                       className="h-11 sm:h-auto py-2 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm sm:text-xs flex items-center gap-1.5 shadow-md shadow-amber-950 transition active:scale-95"
                     >
                       <LogOut className="w-3.5 h-3.5" />
-                      <span>Check-Out (Exit)</span>
+                      <span>Check Out</span>
                     </button>
                   </div>
                 </div>
