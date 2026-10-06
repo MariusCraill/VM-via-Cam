@@ -11,6 +11,8 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -45,3 +47,14 @@ jobs:
         with:
           name: gatepass-test-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      # A pre-release gives a direct APK download link that opens on a phone.
+      - name: Publish test release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk gatepass-test.apk
+          gh release delete test-apk --yes --cleanup-tag || true
+          gh release create test-apk gatepass-test.apk --prerelease --target "$GITHUB_SHA" \
+            --title "Test APK (${GITHUB_REF_NAME})" \
+            --notes "Debug build of ${GITHUB_SHA::7} for phone testing. Barcode scanning and photo capture work; OCR and saving visitors need the server and won't work in this APK."
