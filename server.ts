@@ -582,19 +582,21 @@ Return valid JSON ONLY matching these keys. If any field is unreadable, set it t
         parsed = {};
       }
 
+      // Judge success on what the model read, before ID-card placeholders are filled in.
+      const hasDriverData = !!(
+        parsed.fullName ||
+        parsed.idNumber ||
+        parsed.licenseNumber ||
+        parsed.idCardNumber ||
+        parsed.surname ||
+        parsed.givenNames
+      );
+
       parsed.documentType = isIdCardMode ? 'id_card' : 'drivers_license';
       if (isIdCardMode) {
         parsed.licenseCodes = 'ID Document';
         parsed.licenseNumber = parsed.idCardNumber || 'ID-CARD';
       }
-
-      const hasDriverData = !!(
-        parsed.fullName ||
-        parsed.idNumber ||
-        parsed.licenseNumber ||
-        parsed.surname ||
-        parsed.givenNames
-      );
 
       return res.json({
         success: hasDriverData,
